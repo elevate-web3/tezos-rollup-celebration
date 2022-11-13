@@ -3,7 +3,8 @@
                 "src/main"
                 "src/test"]
 
- :dependencies [[org.clojure/core.async "1.6.673"]]
+ :dependencies [[org.clojure/core.async "1.6.673"]
+                [orchestra "2021.01.01-1"]]
 
  :dev-http {8080 "public"}
 

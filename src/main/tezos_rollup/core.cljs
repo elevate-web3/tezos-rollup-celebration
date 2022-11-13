@@ -1,11 +1,20 @@
 (ns tezos-rollup.core
-  (:require [clojure.core.async :as ca :include-macros true]))
+  (:require [clojure.core.async :as ca :include-macros true]
+            [clojure.spec.alpha :as s]
+            [goog.dom :as d]
+            [orchestra.core :as _ :include-macros true]))
+
+(s/def ::generate-events? boolean?)
+(s/def ::number-of-events integer?)
+(s/def ::previous-count integer?)
+(s/def ::new-events integer?)
 
 (defn init! []
   (println "init"))
 
 (defonce state*
-  (atom {:generate-events? false}))
+  (atom {::generate-events? false
+         ::number-of-events 0}))
 
 (defn get-canvas-el! []
   (js/document.getElementById "my-canvas"))
@@ -63,29 +72,53 @@
 (def anim-frame-ch
   (ca/chan))
 
-(defn key-press-handler [_]
-  (js/console.log "keyown"))
+(defn keydown-handler [_]
+  (when (-> @state* ::generate-events? false?)
+    (swap! state* assoc ::generate-events? true)
+    (ca/go-loop []
+      (when (-> @state* ::generate-events? true?)
+        (-> (rand-int 200)
+            inc
+            (- 100)
+            (+ 1000)
+            (as-> #_i <>
+              (ca/put! event-ch {::new-events <>})))
+        (ca/<! (ca/timeout 1))
+        (recur)))))
 
-(defn create-animation-frame-handler [previous-count]
+(defn keyup-handler [_]
+  (swap! state* assoc ::generate-events? false))
+
+(_/defn-spec create-animation-frame-handler fn?
+  [m (s/keys :req [::previous-count])]
   (fn animation-frame-handler-clsr [_]
-    (ca/put! anim-frame-ch {:previous-count previous-count})))
+    (ca/put! anim-frame-ch m)))
 
 (comment
+  ;; Eval following block to start the update loop
+  (do (js/document.addEventListener "keydown" keydown-handler false)
+      (js/document.addEventListener "keyup" keyup-handler false)
+      (ca/go-loop [event-count 0]
+        (let [[val port] (ca/alts! [event-ch anim-frame-ch])]
+          (cond
+            (identical? port event-ch)
+            (recur (+ event-count (::new-events val)))
+            ;; ---
+            (identical? port anim-frame-ch)
+            (do (when-not (identical? event-count (::previous-count val))
+                  ;; Update view
+                  (-> (d/getHTMLElement "event-count")
+                      (d/setTextContent (str event-count))))
+                (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count event-count}))
+                (recur event-count)))))
+      ;; Start the UI refresh loop
+      (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count 0})))
+  )
 
-  (ca/go-loop [event-count 0]
-    (let [[val port] (ca/alts! [event-ch anim-frame-ch])]
-      (cond
-        (identical? port event-ch)
-        (recur (+ event-count (:new-events val)))
-        ;; ---
-        (identical? port anim-frame-ch)
-        (do (if (identical? event-count (:previous-count val))
-              (js/console.log "No count change")
-              (js/console.log "New count"))
-            (js/window.requestAnimationFrame (create-animation-frame-handler {:previous-count event-count}))
-            (recur event-count)))))
+;; ---
+;; Exploratory dev code
 
-  (js/window.requestAnimationFrame (create-animation-frame-handler {:previous-count 0}))
+(comment
 
   (let [img (js/Image.)
         canvas-el (get-canvas-el!)]
@@ -104,9 +137,7 @@
         time)
     nil)
 
-  (js/document.addEventListener "keydown" key-press-handler false)
-
-  (js/document.removeEventListener "keydown" key-press-handler)
+  (js/document.removeEventListener "keydown" keydown-handler)
 
   (ca/go-loop [i 0]
     (ca/<! (ca/timeout 500))
