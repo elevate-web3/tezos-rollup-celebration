@@ -1,11 +1,11 @@
 ;; shadow-cljs configuration
-{:source-paths
- ["src/dev"
-  "src/main"
-  "src/test"]
+{:source-paths ["src/dev"
+                "src/main"
+                "src/test"]
 
- :dependencies
- []
+ :dependencies [[org.clojure/core.async "1.6.673"]]
 
- :builds
- {}}
+ :dev-http {8080 "public"}
+
+ :builds {:frontend {:target :browser
+                     :modules {:main {:init-fn tezos-rollup.core/init!}}}}}
