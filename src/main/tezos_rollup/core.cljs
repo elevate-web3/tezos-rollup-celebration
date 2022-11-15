@@ -7,6 +7,7 @@
 (s/def ::generate-events? boolean?)
 (s/def ::number-of-events integer?)
 (s/def ::previous-count integer?)
+(s/def ::previous-progress-percentage integer?)
 (s/def ::new-events integer?)
 (s/def ::original-image-uint-array any?)
 (s/def ::randomized-indexes (s/coll-of integer? :kind vector?))
@@ -35,7 +36,8 @@
         data (.-data image-data)
         original-data (::original-image-uint-array @state*)
         randomized-indexes (::randomized-indexes @state*)
-        max-i (.-length original-data)]
+        max-i (-> (.-length original-data)
+                  (/ 4))]
     (when (< xi max-i)
       (loop [i xi]
         (when (and (<= i xe) (< i max-i))
@@ -83,7 +85,7 @@
         (-> (rand-int 200)
             inc
             (- 100)
-            (+ 1000)
+            (+ 400)
             (as-> #_i <>
               (ca/put! event-ch {::new-events <>})))
         (ca/<! (ca/timeout 1))
@@ -94,30 +96,43 @@
     (swap! state* assoc ::generate-events? false)))
 
 (_/defn-spec create-animation-frame-handler fn?
-  [m (s/keys :req [::previous-count])]
+  [m (s/keys :req [::previous-count ::previous-progress-percentage])]
   (fn animation-frame-handler-clsr [_]
     (ca/put! anim-frame-ch m)))
 
 (defn start-update-loop []
   (js/document.addEventListener "keydown" keydown-handler false)
   (js/document.addEventListener "keyup" keyup-handler false)
-  (ca/go-loop [event-count 0]
-    (let [[val port] (ca/alts! [event-ch anim-frame-ch])]
-      (cond
-        (identical? port event-ch)
-        (recur (+ event-count (::new-events val)))
-        ;; ---
-        (identical? port anim-frame-ch)
-        (let [previous-count (::previous-count val)]
-          (when-not (identical? event-count previous-count)
-            ;; Update view
-            (show-pixel-range previous-count event-count)
-            (-> (d/getHTMLElement "event-count")
-                (d/setTextContent (str event-count))))
-          (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count event-count}))
-          (recur event-count)))))
+  (let [total-pixels (-> @state* ::original-image-uint-array .-length (/ 4))]
+    (ca/go-loop [event-count 0]
+      (let [[val port] (ca/alts! [event-ch anim-frame-ch])]
+        (cond
+          (identical? port event-ch)
+          (recur (+ event-count (::new-events val)))
+          ;; ---
+          (identical? port anim-frame-ch)
+          (let [previous-count (::previous-count val)
+                progress-percentage (let [percentage (-> (/ event-count total-pixels)
+                                                         (* 1000)
+                                                         js/Math.floor
+                                                         (/ 10))]
+                                      (if (> percentage 100)
+                                        100
+                                        percentage))]
+            (when-not (identical? event-count previous-count)
+              ;; Update view
+              (show-pixel-range previous-count event-count)
+              (-> (d/getHTMLElement "event-count")
+                  (d/setTextContent (str event-count)))
+              (when-not (identical? progress-percentage (::previous-progress-percentage val))
+                (-> (js/document.getElementById "progress-bar")
+                    (.setAttribute "style" (str "width:" progress-percentage "%;transition:opacity 0s linear;")))))
+            (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count event-count
+                                                                              ::previous-progress-percentage progress-percentage}))
+            (recur event-count))))))
   ;; Start the UI refresh loop
-  (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count 0})))
+  (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count 0
+                                                                    ::previous-progress-percentage 0})))
 
 (defn start-system! []
   (let [img (js/Image.)
@@ -140,11 +155,14 @@
               (swap! state* assoc
                      ::original-image-uint-array data-clone
                      ::randomized-indexes (-> (.-length data-clone)
+                                              (/ 4)
                                               range
                                               shuffle
                                               vec))
               (start-update-loop)
-              (reset-canvas canvas-el)))))
+              (reset-canvas canvas-el)
+              (-> (js/document.getElementById "loading-spinner") .-classList (.add "d-none"))
+              (-> (js/document.getElementById "info-text") .-classList (.remove "d-none"))))))
     #_(-> (.-crossOrigin img)
         (set! "anonymous"))
     (-> (.-src img)
