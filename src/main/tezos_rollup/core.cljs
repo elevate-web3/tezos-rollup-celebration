@@ -143,10 +143,10 @@
                                               vec))
               (start-update-loop)
               (reset-canvas canvas-el)))))
-    (-> (.-crossOrigin img)
+    #_(-> (.-crossOrigin img)
         (set! "anonymous"))
     (-> (.-src img)
-        (set! "https://avatars.githubusercontent.com/u/450766?v=4"))
+        (set! "/images/tezos-rollup.jpg"))
     nil))
 
 (defonce _system
