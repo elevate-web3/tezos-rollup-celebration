@@ -74,22 +74,24 @@
 (def anim-frame-ch
   (ca/chan))
 
-(defn keydown-handler [_]
-  (when (-> @state* ::generate-events? false?)
+(defn keydown-handler [e]
+  (when (and (identical? (.-keyCode e) 32 ) ;; Spacebar
+             (-> @state* ::generate-events? false?))
     (swap! state* assoc ::generate-events? true)
     (ca/go-loop []
       (when (-> @state* ::generate-events? true?)
         (-> (rand-int 200)
             inc
             (- 100)
-            (+ 400)
+            (+ 1000)
             (as-> #_i <>
               (ca/put! event-ch {::new-events <>})))
         (ca/<! (ca/timeout 1))
         (recur)))))
 
-(defn keyup-handler [_]
-  (swap! state* assoc ::generate-events? false))
+(defn keyup-handler [e]
+  (when (identical? (.-keyCode e) 32)
+    (swap! state* assoc ::generate-events? false)))
 
 (_/defn-spec create-animation-frame-handler fn?
   [m (s/keys :req [::previous-count])]
