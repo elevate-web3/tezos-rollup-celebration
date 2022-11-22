@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2022 TriliTech <contact@trili.tech>
+#
+# SPDX-License-Identifier: MIT
+
+[package]
+name = "debug_log"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.21.2", features = ["full"] }
+rand = "0.8.5"
