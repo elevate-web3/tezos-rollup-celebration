@@ -17,17 +17,21 @@ const INTERVAL_MICROS: u64 = 999;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args: Vec<String> = env::args().collect();
     // Create a temporary file.
+    /*
     let temp_directory = env::temp_dir();
     let temp_file = temp_directory.join("debug_log");
+    */
+    let log_file = &args[1];
 
     let mut stdout = io::stdout();
 
     stdout
-        .write(format!("Debug log written at: {:?}\n", temp_file).as_bytes())
+        .write(format!("Debug log written at: {:?}\n", log_file).as_bytes())
         .await?;
 
-    let mut file = File::create(temp_file).await?;
+    let mut file = File::create(log_file).await?;
 
     let mut rng = rand::thread_rng();
     let account_numbers = Uniform::from(0..1000);
