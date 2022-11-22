@@ -23,3 +23,6 @@ pom.xml.asc
 /.shadow-cljs/
 /.lsp/
 /.clj-kondo/
+
+#Rust stuff
+collector/target/*
