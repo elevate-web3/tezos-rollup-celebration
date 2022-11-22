@@ -19,7 +19,7 @@ pom.xml.asc
 .hgignore
 .hg/
 
-/public/js/
+/clojure-front-and-aggregator/public/js/
 /.shadow-cljs/
 /.lsp/
 /.clj-kondo/
