@@ -1,4 +1,4 @@
-(ns tezos-rollup.core
+(ns rollup.front.core
   (:require [clojure.core.async :as ca :include-macros true]
             [clojure.spec.alpha :as s]
             [goog.dom :as d]

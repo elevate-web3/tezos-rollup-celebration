@@ -1,12 +1,23 @@
-;; shadow-cljs configuration
-{:source-paths ["src/dev"
-                "src/main"
-                "src/test"]
+;; ;; shadow-cljs configuration
+;; {:source-paths ["src/dev"
+;;                 "src/main"
+;;                 "src/test"]
 
- :dependencies [[org.clojure/core.async "1.6.673"]
-                [orchestra "2021.01.01-1"]]
+;;  :dependencies [[org.clojure/core.async "1.6.673"]
+;;                 [orchestra "2021.01.01-1"]]
 
- :dev-http {8080 "public"}
+;;  :dev-http {8080 "public"}
 
+;;  :builds {:frontend {:target :browser
+;;                      :modules {:main {:init-fn tezos-rollup.core/init!}}}}}
+
+;; The aliases bring in what we need in development (including shadow-cljs)
+{:deps {:aliases [:dev :cljs]}
  :builds {:frontend {:target :browser
-                     :modules {:main {:init-fn tezos-rollup.core/init!}}}}}
+                     :output-dir "resources/public/cljs"
+                     :asset-path "/cljs"
+                     :release {:output-dir "resources/public/cljs"
+                               :module-hash-names 12
+                               :build-options {:manifest-name "assets.edn"}}
+                     ;; :module-loader true
+                     :modules {:main {:init-fn rollup.front.core/init!}}}}}
