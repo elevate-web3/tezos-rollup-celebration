@@ -1,6 +1,6 @@
 ((nil . ((cider-ns-refresh-before-fn . "user/stop")
          (cider-ns-refresh-after-fn  . "user/start")
-         (cider-clojure-cli-global-options . "-A:dev")
+         (cider-clojure-cli-global-options . "-A:dev:cljs")
          ;; https://github.com/clojure-emacs/cider/issues/2812
          (cider-default-cljs-repl . custom)
          (cider-custom-cljs-repl-init-form . "(do (user/cljs-repl))")
