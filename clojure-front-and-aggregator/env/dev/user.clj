@@ -3,12 +3,17 @@
             [clj-commons.byte-streams :as bs]
             [clojure.spec.alpha :as s]
             [clojure.tools.namespace.repl :as tools-repl]
+            [rollup.server.tick :as tick]
+            [orchestra.spec.test :as st]
             [juxt.clip.repl :as clip-repl]
             [manifold.deferred :as md]
             [manifold.stream :as ms]
             [rollup.system :as sys]
             [shadow.cljs.devtools.api :as shadow]
-            [shadow.cljs.devtools.server :as shadow-server]))
+            [rollup.server.collector :as collector]
+            [shadow.cljs.devtools.server :as shadow-server]
+            [clojure.core.async :as a]
+            [rollup.server.util :as u]))
 
 (set! *warn-on-reflection* true)
 
@@ -18,6 +23,7 @@
 
 (defn start []
   (clip-repl/start)
+  (st/instrument)
   (println "Clip DEV system started")
   nil)
 
@@ -52,18 +58,36 @@
   )
 
 (comment
-  ;; On a terminal, create a file "test.txt" with some text in it.
-  ;; Then run the following command : nc -l -p 1234 < ./test.txt
-  ;; And then run the following expression with a REPL
-  (md/chain
-    (tcp/client {:port 1234 :host "localhost"})
-    (fn [stream]
-      (md/loop []
-        (md/chain
-          (ms/take! stream ::drained)
-          (fn [msg]
-            (if (identical? msg ::drained)
-              (println "End of stream")
-              (do (-> msg (bs/convert String) println)
-                  (md/recur))))))))
+
+  (def loop-ch-cleaning-fn
+    (let [continue?* (atom true)
+          ;; ---
+          {stream-ch ::u/chan
+           clean-tcp-stream ::u/clean-fn}
+          (collector/listen-collector {::collector/host "localhost"
+                                       ::collector/port 1234})
+          ;; ---
+          {tick-ch ::u/chan
+           clean-tick ::u/clean-fn}
+          (tick/start-ticking {::tick/ms-time 1000})]
+      (a/go-loop [byte-count 0]
+        (if (true? @continue?*)
+          (let [[val ch] (a/alts! [stream-ch tick-ch])]
+            (if (identical? ch tick-ch)
+              ;; tick event
+              (do (println (java.util.Date.) ": " byte-count)
+                  (recur byte-count))
+              ;; else byte msg
+              (recur (-> val #_u/throw-on-err count (+ byte-count)))))
+          (println "Last count: " byte-count)))
+      (fn clean []
+        (if (true? @continue?*)
+          (do (reset! continue?* false)
+              (clean-tcp-stream)
+              (clean-tick)
+              :ok)
+          :already-stopped))))
+
+  (loop-ch-cleaning-fn)
+
   )

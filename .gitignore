@@ -13,7 +13,7 @@ pom.xml.asc
 .hg/
 
 /clojure-front-and-aggregator/node_modules/
-/clojure-front-and-aggregator/resources/public/cljs
+/clojure-front-and-aggregator/resources/public/cljs/
 /clojure-front-and-aggregator/resources/public/bootstrap*
 /clojure-front-and-aggregator/target
 /clojure-front-and-aggregator/checkouts

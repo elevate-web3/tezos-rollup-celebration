@@ -1,5 +1,7 @@
 (ns rollup.system
-  (:require [rollup.server.webserver :as webserver]))
+  (:require [rollup.server.webserver :as webserver]
+            [rollup.server.config :as c]
+            [rollup.server.tick :as tick]))
 
 (defn get-system-config []
   {:components
