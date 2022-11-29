@@ -44,3 +44,11 @@ After some bufferization time, the following command display the resulting video
 ```
 ffplay udp://127.0.0.1:1234
 ```
+
+NOTE: The images have been generated using the following command:
+
+```
+convert -resize 400x400\! -compress none [infile] [outfile]
+```
+
+(`convert` being an imagemagick utilities.)
