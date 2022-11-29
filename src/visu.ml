@@ -26,7 +26,7 @@ let rec input_byte cin =
   with End_of_file ->
     input_byte cin
 
-let nb_buffer_images = 1000
+let nb_buffer_images = 10
 
 let output_image =
   let last = ref 0. in

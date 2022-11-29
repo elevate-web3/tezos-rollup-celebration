@@ -52,3 +52,8 @@ convert -resize 400x400\! -compress none [infile] [outfile]
 ```
 
 (`convert` being an imagemagick utilities.)
+
+## TODO
+
+- use more efficient image format for the image sequence (PPM P5 is really the worst :-)
+  e.g., PPM in binary P6 or PNG
