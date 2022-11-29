@@ -1,0 +1,136 @@
+open Libimage
+
+let args = Array.to_list Sys.argv |> List.tl
+
+let () =
+  if List.length args <= 1 then
+    failwith "gen.exe [nb_output] [file1.ppm] ... [fileN.ppm]"
+
+let nb_output = List.hd args |> int_of_string
+
+let nb_rows, nb_cols =
+  let open Seq in
+  let rec from (n : int) : int Seq.t =
+    fun () -> Cons (n, from (n + 1))
+  in
+  let next_prime =
+    let sift (p : int) : int Seq.t -> int Seq.t =
+      filter (fun n -> n mod p <> 0)
+    in
+    let rec sieve (s : int Seq.t) : int Seq.t =
+      fun () -> match s () with
+      | Nil -> Nil
+      | Cons (p, g) -> Cons (p, sieve (sift p g))
+    in
+    let primes = ref (sieve (from 2)) in
+    fun () ->
+      match !primes () with
+      | Nil -> assert false
+      | Cons (x, rest) ->
+        primes := rest; x
+  in
+  let rec decomp fs p n =
+    if n <= 1 then
+      fs
+    else if n mod p = 0 then
+      decomp (p :: fs) p (n / p)
+    else
+      decomp fs (next_prime ()) n
+  in
+  let fs = decomp [] (next_prime ()) nb_output in
+  match fs with
+  | [] -> assert false
+  | [_p] -> failwith "Choose a number of nodes that is not prime, please"
+  | fs ->
+    let rec balanced_prod prod fs  =
+      if prod >= (int_of_float (sqrt (float_of_int nb_output))) then
+        prod, List.fold_left ( * ) 1 fs
+      else
+        match fs with
+        | f :: fs -> balanced_prod (f * prod) fs
+        | [] -> assert false
+    in
+    balanced_prod 1 fs
+
+let rec ( -- ) start stop = if start = stop then [start] else start :: (start + 1 -- stop)
+
+let out_filenames, couts =
+  List.mapi
+    (fun i _ -> Filename.open_temp_file "gen" ("." ^ string_of_int i))
+    (1 -- nb_output)
+  |> List.split
+
+let couts = Array.of_list couts
+
+let images = List.tl args |> List.map Image.load
+
+let width = (List.hd images).Image.w
+
+let width_cell = width / nb_cols
+
+let height = (List.hd images).Image.h
+
+let height_cell = height / nb_rows
+
+let () =
+  if height mod nb_rows <> 0 then
+    failwith (Format.asprintf "Choose image with height a factor of %d" nb_rows);
+  if width mod nb_cols <> 0 then
+    failwith (Format.asprintf "Choose image with width a factor of %d" nb_cols)
+
+let () =
+  List.iteri (fun i img ->
+      let open Image in
+      if img.w <> width then
+        failwith (Format.asprintf "Image %d must be of width %d (%d found)" i width img.w);
+      if img.h <> height then
+        failwith (Format.asprintf "Image %d must be of height %d (%d found)" i height img.h))
+    images
+
+let output_of x y =
+  let (row, col) = (y / height_cell, x / width_cell) in
+  row * nb_cols + col
+
+let account_of x y =
+  let x0 = x mod width_cell
+  and y0 = y mod height_cell in
+  y0 * width_cell + x0
+
+(* let encode_little_endian x =
+ *   (x land 0xff, (x lsr 8) land 0xff)
+ *
+ * let decode_little_endian (a, b) =
+ *   (b lsl 8) lor a *)
+
+let push_pixel x y c =
+  let open Image in
+  let index = output_of x y in
+  let cout = couts.(index) in
+  let account = account_of x y in
+  let write_account () =
+    assert (account < 5000);
+    output_byte cout (account land 0xff);
+    output_byte cout ((account lsr 8) land 0xff)
+  in
+  write_account ();
+  output_byte cout (Char.code 'R');
+  output_byte cout (red c);
+  write_account ();
+  output_byte cout (Char.code 'G');
+  output_byte cout (green c);
+  write_account ();
+  output_byte cout (Char.code 'B');
+  output_byte cout (blue c)
+
+let process img =
+  Image.iter img @@ push_pixel
+
+let announce () =
+  Format.printf "%d %d %d %d %s\n%!"
+    width height nb_rows nb_cols (String.concat " " out_filenames)
+
+let rec omega f = f (); omega f
+
+let () =
+  announce ();
+  omega @@ fun () -> List.iter process images;
