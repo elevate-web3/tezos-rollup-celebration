@@ -1,12 +1,19 @@
 (ns rollup.server.util
-  (:require [clojure.spec.alpha :as s]
-            [clojure.core.async :as a]))
+  (:require [clojure.core.async :as a]
+            [clojure.spec.alpha :as s]
+            [manifold.stream :as ms]))
 
 (s/def ::chan
   #(instance? clojure.core.async.impl.channels.ManyToManyChannel %))
 
+(s/def ::stream
+  #(instance? manifold.stream.default.Stream %))
+
 ;; An atom containing a stream or nil
-(s/def ::stream<?>* #(instance? clojure.lang.Atom %))
+(s/def ::stream<?>* #(and (instance? clojure.lang.Atom %)
+                          (let [val (deref %)]
+                            (or (nil? val)
+                                (instance? manifold.stream.default.Stream val)))))
 
 ;; Handler meant to stop light processes
 (s/def ::clean-fn fn?)

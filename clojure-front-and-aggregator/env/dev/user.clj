@@ -56,38 +56,3 @@
   (refresh-and-restart)
 
   )
-
-(comment
-
-  (def loop-ch-cleaning-fn
-    (let [continue?* (atom true)
-          ;; ---
-          {stream-ch ::u/chan
-           clean-tcp-stream ::u/clean-fn}
-          (collector/listen-collector {::collector/host "localhost"
-                                       ::collector/port 1234})
-          ;; ---
-          {tick-ch ::u/chan
-           clean-tick ::u/clean-fn}
-          (tick/start-ticking {::tick/ms-time 1000})]
-      (a/go-loop [byte-count 0]
-        (if (true? @continue?*)
-          (let [[val ch] (a/alts! [stream-ch tick-ch])]
-            (if (identical? ch tick-ch)
-              ;; tick event
-              (do (println (java.util.Date.) ": " byte-count)
-                  (recur byte-count))
-              ;; else byte msg
-              (recur (-> val #_u/throw-on-err count (+ byte-count)))))
-          (println "Last count: " byte-count)))
-      (fn clean []
-        (if (true? @continue?*)
-          (do (reset! continue?* false)
-              (clean-tcp-stream)
-              (clean-tick)
-              :ok)
-          :already-stopped))))
-
-  (loop-ch-cleaning-fn)
-
-  )

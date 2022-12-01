@@ -11,23 +11,35 @@
 (s/def ::host string?)
 (s/def ::port integer?)
 
-(_/defn-spec listen-collector (s/keys :req [::u/chan ::u/clean-fn])
+(s/def ::output-chan ::u/chan)
+
+(_/defn-spec start (s/keys :req [::output-chan ::u/clean-fn])
   [m (s/keys :req [::host ::port])]
   (let [c (a/chan)
-        stream<?>* (atom nil)]
-    (letfn [(clean! []
-              (a/close! c)
-              (some-> @stream<?>* ms/close!))]
-      (md/chain
-        (tcp/client {:port 1234 :host "localhost"})
-        (fn [stream]
-          (reset! stream<?>* stream)
-          (md/loop []
-            (md/chain
-              (ms/take! stream ::drained)
-              (fn [msg]
-                (when-not(identical? msg ::drained)
-                  (a/put! c msg)
-                  (md/recur)))))))
-      {::u/chan c
-       ::u/clean-fn clean!})))
+        stream<?>* (atom nil)
+        ;; ---
+        {host ::host
+         port ::port}
+        m]
+    (md/chain
+      (tcp/client {:port port :host host})
+      (fn [stream]
+        (reset! stream<?>* stream)
+        (md/loop []
+          (md/chain
+            (ms/take! stream ::drained)
+            (fn [msg]
+              (when-not (identical? msg ::drained)
+                (a/put! c msg)
+                (md/recur)))))))
+    {::output-chan c
+     ::u/clean-fn (fn clean! []
+                    (println "Cleaning collectors")
+                    (a/close! c)
+                    (some-> @stream<?>* ms/close!))}))
+
+(_/defn-spec stop nil?
+  [m (s/keys :req [::u/clean-fn])]
+  (as-> (::u/clean-fn m) func
+    (func))
+  nil)

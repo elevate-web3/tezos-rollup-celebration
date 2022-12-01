@@ -7,3 +7,7 @@
       slurp
       resp/response
       (resp/content-type "text/html; charset=utf-8")))
+
+(defn data-stream [req]
+  ;; WIP
+  )
