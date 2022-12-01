@@ -1,39 +1,46 @@
 (ns rollup.server.aggregator
-  (:require [clojure.core.async :as a]
-            [rollup.server.collector :as collector]
-            [rollup.server.tick :as tick]
-            [rollup.server.util :as u]
+  (:require [clojure.spec.alpha :as s]
+            [manifold.deferred :as md]
+            [manifold.stream :as ms]
             [orchestra.core :as _]
-            [clojure.spec.alpha :as s]))
+            [rollup.server.collector :as collector]
+            [rollup.server.util :as u]))
 
-(s/def ::output-chan ::u/chan)
+(s/def ::output-stream ::u/stream)
+(s/def ::flush-ms integer?) ;; ms period for sending data to clients
 
-(_/defn-spec start (s/keys :req [::output-chan ::u/clean-fn])
-  [m (s/keys :req [::collector/output-chan])]
+(_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
+  [m (s/keys :req [::collector/output-stream ::flush-ms])]
   (let [continue?* (atom true)
-        {collector-chan ::collector/output-chan} m
+        {collector-stream ::collector/output-stream} m
         ;; ---
-        {tick-ch ::u/chan
-         clean-tick ::u/clean-fn}
-        (tick/start-ticking {::tick/ms-time 1000})
+        tick-stream (ms/periodically (::flush-ms m) (fn [] ::tick))
+        merge-stream (let [stream (ms/stream)]
+                       (ms/connect collector-stream stream)
+                       (ms/connect tick-stream stream)
+                       stream)
         ;; ---
-        output-ch (a/chan)]
-    (a/go-loop [byte-count 0]
+        output-stream (ms/stream)]
+    (md/loop [byte-count 0]
       (when (true? @continue?*)
-        (let [[val ch] (a/alts! [collector-chan tick-ch])]
-          (if (identical? ch tick-ch)
-            ;; tick event
-            (do (a/put! output-ch byte-count)
-                (recur byte-count))
-            ;; else byte msg
-            (let [byte-arr val]
-              (recur (-> byte-arr u/throw-on-err count (+ byte-count))))))))
+        (md/chain
+          (ms/take! merge-stream)
+          #(cond
+             (identical? % ::tick)
+             (do (ms/put! output-stream byte-count)
+                 (md/recur byte-count))
+             ;; ---
+             (u/byte-array? %)
+             (md/recur (-> % count (+ byte-count)))
+             ;; ---
+             :else nil ;; TODO: check what can fail
+             ))))
     {::u/clean-fn (fn clean []
                     (println "Cleaning aggregator")
                     (reset! continue?* false)
-                    (a/close! output-ch)
-                    (clean-tick))
-     ::output-chan output-ch}))
+                    (doseq [s [output-stream tick-stream merge-stream]]
+                      (ms/close! s)))
+     ::output-stream output-stream}))
 
 (_/defn-spec stop nil?
   [m (s/keys :req [::u/clean-fn])]

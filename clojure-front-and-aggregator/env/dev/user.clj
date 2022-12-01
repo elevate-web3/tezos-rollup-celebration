@@ -3,17 +3,15 @@
             [clj-commons.byte-streams :as bs]
             [clojure.spec.alpha :as s]
             [clojure.tools.namespace.repl :as tools-repl]
-            [rollup.server.tick :as tick]
-            [orchestra.spec.test :as st]
             [juxt.clip.repl :as clip-repl]
             [manifold.deferred :as md]
             [manifold.stream :as ms]
+            [orchestra.spec.test :as st]
+            [rollup.server.collector :as collector]
+            [rollup.server.util :as u]
             [rollup.system :as sys]
             [shadow.cljs.devtools.api :as shadow]
-            [rollup.server.collector :as collector]
-            [shadow.cljs.devtools.server :as shadow-server]
-            [clojure.core.async :as a]
-            [rollup.server.util :as u]))
+            [shadow.cljs.devtools.server :as shadow-server]))
 
 (set! *warn-on-reflection* true)
 

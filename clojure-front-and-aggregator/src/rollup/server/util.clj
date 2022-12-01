@@ -1,10 +1,5 @@
 (ns rollup.server.util
-  (:require [clojure.core.async :as a]
-            [clojure.spec.alpha :as s]
-            [manifold.stream :as ms]))
-
-(s/def ::chan
-  #(instance? clojure.core.async.impl.channels.ManyToManyChannel %))
+  (:require [clojure.spec.alpha :as s]))
 
 (s/def ::stream
   #(instance? manifold.stream.default.Stream %))
@@ -18,14 +13,6 @@
 ;; Handler meant to stop light processes
 (s/def ::clean-fn fn?)
 
-(defn throw-on-err [v]
-  (if (isa? java.lang.Throwable v)
-    (throw v)
-    v))
-
-(defmacro <? "Version of <! that throw Exceptions that come out of a channel."
-  [c]
-  `(let [v# (a/<! ~c)]
-     (if (isa? java.lang.Throwable v#)
-       (throw v#)
-       v#)))
+(let [c (class (byte-array 1))]
+  (defn byte-array? [x]
+    (instance? c x)))

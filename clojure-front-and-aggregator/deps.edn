@@ -5,7 +5,6 @@
         orchestra/orchestra {:mvn/version "2021.01.01-1"}
         org.clj-commons/byte-streams {:mvn/version "0.3.1"}
         org.clojure/clojure {:mvn/version "1.11.1"}
-        org.clojure/core.async {:mvn/version "1.6.673"}
         org.clojure/spec.alpha {:mvn/version "0.3.218"}
         ring/ring-defaults {:mvn/version "0.3.4"}}
  :aliases {:dev {:extra-paths ["env/dev"]

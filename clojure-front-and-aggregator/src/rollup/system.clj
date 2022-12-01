@@ -3,7 +3,6 @@
             [rollup.server.aggregator :as aggregator]
             [rollup.server.collector :as collector]
             [rollup.server.config :as c]
-            [rollup.server.tick :as tick]
             [rollup.server.webserver :as webserver]
             [rollup.server.util :as u]))
 
@@ -12,8 +11,11 @@
    {::collectors {:start `(collector/start {::collector/host "localhost"
                                             ::collector/port 1234})
                   :stop `collector/stop}
-    ::aggregator {:start `(aggregator/start (select-keys (clip/ref ::collectors) [::collector/output-chan]))
+    ::aggregator {:start `(aggregator/start
+                            (merge {::aggregator/flush-ms 100}
+                                   (select-keys (clip/ref ::collectors) [::collector/output-stream])))
                   :stop `aggregator/stop}
-    ::webserver {:start `(webserver/start-webserver! (merge {:port 9000}
-                                                            (select-keys (clip/ref ::aggregator) [::aggregator/output-chan])))
+    ::webserver {:start `(webserver/start-webserver!
+                           (merge {:port 9000}
+                                  (select-keys (clip/ref ::aggregator) [::aggregator/output-stream])))
                  :stop `webserver/stop-webserver!}}})
