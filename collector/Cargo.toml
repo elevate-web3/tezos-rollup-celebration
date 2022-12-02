@@ -9,3 +9,4 @@ edition = "2021"
 anyhow = { version = "1", features = ["backtrace"] }
 ctrlc = "3"
 notify = "5.0.0"
+clap = { version = "4", features = ["derive"] }
