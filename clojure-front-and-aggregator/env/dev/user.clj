@@ -53,4 +53,7 @@
 
   (refresh-and-restart)
 
+  (do (stop)
+      (tools-repl/refresh))
+
   )
