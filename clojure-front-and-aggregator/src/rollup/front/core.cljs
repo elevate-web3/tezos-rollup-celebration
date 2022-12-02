@@ -214,4 +214,12 @@
     (when (< i 10)
       (recur (inc i))))
 
+  (def event-source
+    (let [es (js/EventSource. "/data-stream")]
+      (set! (.-onmessage es)
+            (fn [event]
+              (-> (d/getHTMLElement "event-count")
+                  (d/setTextContent (str (.-data event))))))
+      es))
+
   )
