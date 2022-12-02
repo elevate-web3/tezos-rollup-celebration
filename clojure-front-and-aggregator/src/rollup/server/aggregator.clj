@@ -12,8 +12,7 @@
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [m (s/keys :req [::collector/output-stream ::flush-ms])]
   (println "Starting aggregator")
-  (let [continue?* (atom true)
-        {collector-stream ::collector/output-stream} m
+  (let [{collector-stream ::collector/output-stream} m
         ;; ---
         tick-stream (ms/periodically (::flush-ms m) (fn [] ::tick))
         merge-stream (let [stream (ms/stream)]
@@ -21,26 +20,25 @@
                        (ms/connect tick-stream stream)
                        stream)
         ;; ---
-        output-stream (ms/stream)]
+        output-stream (ms/stream )]
     (md/loop [byte-count 0]
-      (when (true? @continue?*)
-        (md/chain
-          (ms/take! merge-stream)
-          #(cond
-             (identical? % ::tick)
-             (do (println byte-count)
-                 (ms/put! output-stream byte-count)
-                 (md/recur byte-count))
-             ;; ---
-             (u/byte-array? %)
-             (md/recur (-> % count (+ byte-count)))
-             ;; ---
-             :else nil ;; TODO: check what can fail
-             ))))
+      (md/chain
+        (ms/take! merge-stream)
+        #(cond
+           (identical? % ::tick)
+           (do (println byte-count)
+               (ms/put! output-stream byte-count)
+               (md/recur byte-count))
+           ;; ---
+           (u/byte-array? %)
+           (md/recur (-> % count (+ byte-count)))
+           ;; stream is closed
+           (nil? %) nil
+           :else nil ;; TODO: check what can fail
+           )))
     {::u/clean-fn (fn clean []
                     (println "Cleaning aggregator")
-                    (reset! continue?* false)
-                    (doseq [s [output-stream tick-stream merge-stream]]
+                    (doseq [s [merge-stream output-stream tick-stream]]
                       (ms/close! s)))
      ::output-stream output-stream}))
 
