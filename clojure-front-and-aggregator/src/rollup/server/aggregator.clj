@@ -11,6 +11,7 @@
 
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [m (s/keys :req [::collector/output-stream ::flush-ms])]
+  (println "Starting aggregator")
   (let [continue?* (atom true)
         {collector-stream ::collector/output-stream} m
         ;; ---
@@ -27,7 +28,8 @@
           (ms/take! merge-stream)
           #(cond
              (identical? % ::tick)
-             (do (ms/put! output-stream byte-count)
+             (do (println byte-count)
+                 (ms/put! output-stream byte-count)
                  (md/recur byte-count))
              ;; ---
              (u/byte-array? %)
@@ -44,6 +46,6 @@
 
 (_/defn-spec stop nil?
   [m (s/keys :req [::u/clean-fn])]
-  (as-> (::u/clean-fn m) func
+  (when-let [func (::u/clean-fn m)]
     (func))
   nil)

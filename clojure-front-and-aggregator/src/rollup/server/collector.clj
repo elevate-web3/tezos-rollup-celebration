@@ -12,30 +12,33 @@
 (s/def ::output-stream ::u/stream)
 
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
-  [m (s/keys :req [::host ::port])]
-  (let [output-stream (ms/stream)
-        stream<?>* (atom nil)
-        {host ::host
-         port ::port} m]
-    (md/chain
-      (tcp/client {:port port :host host})
-      (fn [input-stream]
-        (reset! stream<?>* input-stream)
-        (md/loop []
-          (md/chain
-            (ms/take! input-stream ::drained)
-            (fn [msg]
-              (when-not (identical? msg ::drained)
-                (ms/put! output-stream msg)
-                (md/recur)))))))
-    {::output-stream output-stream
-     ::u/clean-fn (fn clean! []
-                    (println "Cleaning collectors")
-                    (ms/close! output-stream)
-                    (some-> @stream<?>* ms/close!))}))
+  [configs (s/coll-of (s/keys :req [::host ::port]))]
+  (println "Starting collector connections")
+  (let [output-stream (ms/stream)]
+    (-> (md/let-flow [streams (->> configs
+                                   (mapv #(tcp/client {:port (::port %)
+                                                       :host (::host %)}))
+                                   (apply md/zip))]
+          (doseq [stream streams]
+            (md/future
+              (md/loop []
+                (md/chain
+                  (ms/take! stream ::drained)
+                  (fn [msg]
+                    (if (identical? msg ::drained)
+                      (println "Collector stream drained")
+                      (do (ms/put! output-stream msg)
+                          (md/recur))))))))
+          {::output-stream output-stream
+           ::u/clean-fn (fn clean! []
+                          (println "Cleaning collectors")
+                          (ms/close! output-stream)
+                          (doseq [stream streams]
+                            (ms/close! stream)))})
+        deref)))
 
 (_/defn-spec stop nil?
   [m (s/keys :req [::u/clean-fn])]
-  (as-> (::u/clean-fn m) func
+  (when-let [func (::u/clean-fn m)]
     (func))
   nil)

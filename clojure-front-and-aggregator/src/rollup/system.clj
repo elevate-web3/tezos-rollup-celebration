@@ -8,11 +8,13 @@
 
 (defn get-system-config []
   {:components
-   {::collectors {:start `(collector/start {::collector/host "localhost"
-                                            ::collector/port 1234})
+   {::collectors {:start `(collector/start [{::collector/host "localhost"
+                                             ::collector/port 1234}
+                                            #_{::collector/host "localhost"
+                                             ::collector/port 1235}])
                   :stop `collector/stop}
     ::aggregator {:start `(aggregator/start
-                            (merge {::aggregator/flush-ms 100}
+                            (merge {::aggregator/flush-ms 1000}
                                    (select-keys (clip/ref ::collectors) [::collector/output-stream])))
                   :stop `aggregator/stop}
     ::webserver {:start `(webserver/start-webserver!
