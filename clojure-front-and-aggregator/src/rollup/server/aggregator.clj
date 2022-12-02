@@ -20,14 +20,14 @@
                        (ms/connect tick-stream stream)
                        stream)
         ;; ---
-        output-stream (ms/stream )]
+        output-stream (ms/stream* {:permanent? true})]
     (md/loop [byte-count 0]
       (md/chain
         (ms/take! merge-stream)
         #(cond
            (identical? % ::tick)
-           (do (println byte-count)
-               (ms/put! output-stream byte-count)
+           (do #_(println byte-count)
+               (ms/put! output-stream (str "data: " byte-count "\n\n"))
                (md/recur byte-count))
            ;; ---
            (u/byte-array? %)
