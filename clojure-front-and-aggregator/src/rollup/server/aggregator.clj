@@ -4,10 +4,17 @@
             [manifold.stream :as ms]
             [orchestra.core :as _]
             [rollup.server.collector :as collector]
-            [rollup.server.util :as u]))
+            [rollup.server.util :as u]
+            [clj-commons.byte-streams :as bs]
+            [clojure.string :as str])
+  (:import org.apache.commons.codec.binary.Hex))
 
 (s/def ::output-stream ::u/stream)
 (s/def ::flush-ms integer?) ;; ms period for sending data to clients
+
+;; ??? macro for semantics and may be performance
+(defmacro not-empty? [coll]
+  `(boolean (seq ~coll)))
 
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [m (s/keys :req [::collector/output-stream ::flush-ms])]
@@ -19,23 +26,44 @@
                        (ms/connect collector-stream stream)
                        (ms/connect tick-stream stream)
                        stream)
+        sending-stream (ms/stream)
         ;; ---
         output-stream (ms/stream* {:permanent? true})]
-    (md/loop [byte-count 0]
-      (md/chain
-        (ms/take! merge-stream)
-        #(cond
-           (identical? % ::tick)
-           (do #_(println byte-count)
-               (ms/put! output-stream (str "data: " byte-count "\n\n"))
-               (md/recur byte-count))
-           ;; ---
-           (u/byte-array? %)
-           (md/recur (-> % count (+ byte-count)))
-           ;; stream is closed
-           (nil? %) nil
-           :else nil ;; TODO: check what can fail
-           )))
+    ;; Sending loop
+    (md/future
+      (md/loop []
+        (md/chain
+          (ms/take! sending-stream)
+          (fn [byte-array-vec]
+            (cond
+              (nil? byte-array-vec) nil ;; stream closed
+              ;; ---
+              (not-empty? byte-array-vec)
+              (do (ms/put! output-stream "data: ")
+                  (doseq [ba byte-array-vec]
+                    (->> (Hex/encodeHexString ^bytes ba)
+                         (ms/put! output-stream)))
+                  (ms/put! output-stream "\n\n")
+                  (md/recur))
+              ;; ---
+              :else (md/recur))))))
+    ;; Accumulating loop
+    (md/future
+      (md/loop [byte-array-vec []]
+        (md/chain
+          (ms/take! merge-stream)
+          (fn [val]
+            (cond
+              (identical? val ::tick)
+              (do (ms/put! sending-stream byte-array-vec)
+                  (md/recur []))
+              ;; ---
+              (u/byte-array? val)
+              (md/recur (conj byte-array-vec val))
+              ;; stream is closed
+              (nil? val) nil
+              :else nil ;; TODO: check what can fail
+              )))))
     {::u/clean-fn (fn clean []
                     (println "Cleaning aggregator")
                     (doseq [s [merge-stream output-stream tick-stream]]
