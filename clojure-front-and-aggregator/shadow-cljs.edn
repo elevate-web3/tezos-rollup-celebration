@@ -20,4 +20,4 @@
                                :module-hash-names 12
                                :build-options {:manifest-name "assets.edn"}}
                      ;; :module-loader true
-                     :modules {:main {:init-fn rollup.front.core/init!}}}}}
+                     :modules {:main {:init-fn rollup.front.core/start-system!}}}}}

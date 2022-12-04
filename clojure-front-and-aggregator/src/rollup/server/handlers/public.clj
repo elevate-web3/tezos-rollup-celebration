@@ -1,12 +1,21 @@
 (ns rollup.server.handlers.public
-  (:require [ring.util.response :as resp]
+  (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [rollup.server.routing :as rtng]
-            [rollup.server.aggregator :as aggregator]
+            [clojure.spec.alpha :as s]
+            [comb.template :as comb]
+            [manifold.stream :as ms]
             [orchestra.core :as _]
-            [manifold.stream :as ms]))
+            [ring.util.response :as resp]
+            [rollup.server.aggregator :as aggregator]
+            [rollup.server.routing :as rtng]))
 
-(let [body (slurp (io/resource "public/index.html"))]
+(let [template (slurp (io/resource "templates/index.html"))
+      body (comb/eval template {:main-js-name (if-let [asset-file (io/resource "public/cljs/assets.edn")]
+                                                (->> (some #(when (-> % :name (= :main))
+                                                              (:output-name %))
+                                                           (edn/read-string (slurp asset-file)))
+                                                     (s/assert string?))
+                                                "main.js")})]
   (defn home-page [_req]
     (-> (resp/response body)
         (resp/content-type "text/html; charset=utf-8"))))

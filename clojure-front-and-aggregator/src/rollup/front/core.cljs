@@ -10,9 +10,6 @@
 (s/def ::previous-progress-percentage integer?)
 (s/def ::new-events integer?)
 
-(defn init! []
-  (println "init"))
-
 (defn get-canvas-el! []
   (js/document.getElementById "my-canvas"))
 
@@ -101,6 +98,3 @@
     (-> (.-src img)
         (set! "/images/tezos-rollup.jpg"))
     nil))
-
-(defonce _system
-  (start-system!))
