@@ -1,15 +1,22 @@
 (ns rollup.system
-  (:require [juxt.clip.core :as clip]
+  (:require [clojure.data.json :as json]
+            [clojure.java.io :as io]
+            [clojure.spec.alpha :as s]
+            [clojure.string :as str]
+            [juxt.clip.core :as clip]
             [rollup.server.aggregator :as aggregator]
             [rollup.server.collector :as collector]
-            [rollup.server.config :as c]
-            [rollup.server.webserver :as webserver]
-            [rollup.server.util :as u]))
+            [rollup.server.webserver :as webserver]))
 
 (defn get-system-config []
-  (let [collectors (->> (range 1234 1244)
-                        (mapv #(do {::collector/host "localhost"
-                                    ::collector/port %})))]
+  (let [collectors (->> (slurp (io/resource "collectors.json"))
+                        (s/assert #(not (str/blank? %)))
+                        json/read-str
+                        (s/assert (s/coll-of map? :kind vector?))
+                        (mapv #(do {::collector/host (get % "host")
+                                    ::collector/port (get % "port")}))
+                        (s/assert (s/coll-of (s/keys :req [::collector/host
+                                                           ::collector/port]))))]
     {:components
      {::collectors {:start `(collector/start ~collectors)
                     :stop `collector/stop}
