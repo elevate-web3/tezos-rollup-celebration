@@ -1,6 +1,9 @@
 run-aggregator:
 	clojure -M:prod -m rollup.core
 
+download-deps:
+	clojure -P -M:prod -m rollup.core
+
 build-prod-cljs:
 	rm -rf ./resources/public/cljs
 	clojure -M:cljs-prod release frontend
