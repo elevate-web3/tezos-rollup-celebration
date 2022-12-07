@@ -66,7 +66,7 @@
                   (md/recur [] tps-count))
               ;; ---
               (identical? val ::tick-tps)
-              (do (println "TPS: " tps-count)
+              (do #_(println "TPS: " tps-count)
                   (ms/put! output-stream (str "event: tps\ndata: " tps-count "\n\n"))
                   ;; DEV CODE: clean tps
                   (md/recur byte-array-vec 0))
