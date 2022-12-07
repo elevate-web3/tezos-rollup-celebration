@@ -33,7 +33,8 @@
         (cond
           (identical? port event-ch)
           (recur (-> (count val)
-                     (/ 2) ;; For the time being bytes are sent as hex string. One byte is two characters.
+                     (/ 20) ;; For the time being bytes are sent as hex string. One byte is two characters.
+                     js/Math.round
                      (+ byte-count)))
           ;; ---
           (identical? port anim-frame-ch)
@@ -49,7 +50,7 @@
               ;; Update view
               (show-pixel-range previous-count byte-count)
               (-> (d/getHTMLElement "byte-count")
-                  (d/setTextContent (str byte-count)))
+                  (d/setTextContent (str (* byte-count 10))))
               (when-not (identical? progress-percentage (::previous-progress-percentage val))
                 (-> (js/document.getElementById "progress-bar")
                     (.setAttribute "style" (str "width:" progress-percentage "%;transition:opacity 0s linear;")))))
