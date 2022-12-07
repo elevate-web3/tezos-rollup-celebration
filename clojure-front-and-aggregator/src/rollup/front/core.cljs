@@ -80,9 +80,11 @@
                   data (.-data image-data)
                   data-clone (js/Uint8ClampedArray.from data)]
               (let [es (js/EventSource. "/data-stream")]
-                (set! (.-onmessage es)
-                      (fn [event]
-                        (a/put! event-ch (.-data event)))))
+                (.addEventListener es "bytes" (fn [event]
+                                                (a/put! event-ch (.-data event))))
+                (.addEventListener es "tps" (fn [event]
+                                              (-> (d/getHTMLElement "tps")
+                                                  (d/setTextContent (.-data event))))))
               (start-update-loop {::u/canvas-el el
                                   ::u/original-image-uint-array data-clone
                                   ::u/randomized-indexes (-> (.-length data-clone)

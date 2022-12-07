@@ -22,9 +22,13 @@
   (let [{collector-stream ::collector/output-stream} m
         ;; ---
         tick-stream (ms/periodically (::flush-ms m) (fn [] ::tick))
+        ;; DEV CODE: remove later
+        tick-dev-tps (ms/periodically 1000 (fn [] ::tick-tps))
         merge-stream (let [stream (ms/stream)]
                        (ms/connect collector-stream stream)
                        (ms/connect tick-stream stream)
+                       ;; DEV CODE: remove later
+                       (ms/connect tick-dev-tps stream)
                        stream)
         sending-stream (ms/stream)
         ;; ---
@@ -39,7 +43,7 @@
               (nil? byte-array-vec) nil ;; stream closed
               ;; ---
               (not-empty? byte-array-vec)
-              (do (ms/put! output-stream "data: ")
+              (do (ms/put! output-stream "event: bytes\ndata: ")
                   (doseq [ba byte-array-vec]
                     (->> (Hex/encodeHexString ^bytes ba)
                          (ms/put! output-stream)))
@@ -49,17 +53,28 @@
               :else (md/recur))))))
     ;; Accumulating loop
     (md/future
-      (md/loop [byte-array-vec []]
+      (md/loop [byte-array-vec []
+                ;; DEV CODE: remove later
+                tps-count 0]
         (md/chain
           (ms/take! merge-stream)
           (fn [val]
             (cond
               (identical? val ::tick)
               (do (ms/put! sending-stream byte-array-vec)
-                  (md/recur []))
+                  ;; DEV CODE: clean tps
+                  (md/recur [] tps-count))
+              ;; ---
+              (identical? val ::tick-tps)
+              (do (println "TPS: " tps-count)
+                  (ms/put! output-stream (str "event: tps\ndata: " tps-count "\n\n"))
+                  ;; DEV CODE: clean tps
+                  (md/recur byte-array-vec 0))
               ;; ---
               (u/byte-array? val)
-              (md/recur (conj byte-array-vec val))
+              (md/recur (conj byte-array-vec val)
+                        ;; DEV CODE: clean tps
+                        (+ tps-count (-> val count (/ 4))))
               ;; stream is closed
               (nil? val) nil
               :else nil ;; TODO: check what can fail
