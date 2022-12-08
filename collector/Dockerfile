@@ -1,7 +1,7 @@
 FROM archlinux:base-devel
 
 # Setup environment variables
-ENV FILE ""
+ENV FILE "/tmp/log_file.txt"
 ENV PORT 1234
 
 
