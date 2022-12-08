@@ -9,7 +9,12 @@
             [rollup.server.webserver :as webserver]))
 
 (defn get-system-config []
-  (let [collectors (->> (slurp (io/resource "collectors.json"))
+  (let [collectors (->> (if-let [env-path (System/getenv "TEZOS_ROLLUP_CONF_PATH")]
+                          (do (assert (.exists (io/as-file env-path))
+                                      (str "The conf file " env-path " does not exist"))
+                              (io/as-file env-path))
+                          (io/resource "collectors.json"))
+                        slurp
                         (s/assert #(not (str/blank? %)))
                         json/read-str
                         (s/assert (s/coll-of map? :kind vector?))
