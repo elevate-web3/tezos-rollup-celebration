@@ -1,0 +1,21 @@
+FROM archlinux:base-devel
+
+# Setup pacman and update system
+RUN pacman-key --init && pacman -Syu --noconfirm
+
+# Install clojure
+RUN pacman -S --noconfirm jdk-openjdk clojure
+
+#Json File
+ENV CONFIG resources/config.json
+
+# Copy project files
+COPY . .
+
+# build
+RUN clojure -M:cljs-prod release frontend
+RUN clojure -P -M:prod -m rollup.core
+
+# Run server
+CMD clojure -M:prod -m rollup.core --config=$CONFIG
+EXPOSE 9000
