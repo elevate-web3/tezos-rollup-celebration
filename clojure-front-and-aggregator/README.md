@@ -47,3 +47,9 @@ Or run:
 ```bash
 make open-browser-page
 ```
+
+## Run the docker
+
+The aggregator use a JSON file to configure the address + port of the collector to listen to specified in `ENV CONFIG` and open a web-server on port 9000
+
+`docker run -p 9000:80 -e CONFIG:<CONTAINER_FOLDER/CONFIG_FILE> -v <HOST_FOLDER>:<CONTAINER_FOLDER> aggregator
