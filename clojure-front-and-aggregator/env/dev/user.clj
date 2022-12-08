@@ -17,7 +17,7 @@
 
 (tools-repl/set-refresh-dirs "env/dev" "src")
 
-(clip-repl/set-init! sys/get-system-config)
+(clip-repl/set-init! #(sys/get-system-config {}))
 
 (defn start []
   (clip-repl/start)

@@ -8,12 +8,16 @@
             [rollup.server.collector :as collector]
             [rollup.server.webserver :as webserver]))
 
-(defn get-system-config []
-  (let [collectors (->> (if-let [env-path (System/getenv "TEZOS_ROLLUP_CONF_PATH")]
-                          (do (assert (.exists (io/as-file env-path))
-                                      (str "The conf file " env-path " does not exist"))
-                              (io/as-file env-path))
-                          (io/resource "collectors.json"))
+;; Path to a custom JSON file for collectors
+(s/def ::json-config-path string?)
+
+(defn get-system-config [cli-config]
+  (let [collectors (->> (if-let [path (get-in cli-config [:options ::json-config-path])]
+                          (let [file (io/as-file path)]
+                            (assert (.exists file) (str "The conf file " path " does not exist"))
+                            (io/as-file path))
+                          ;; Default config
+                          (io/resource "collectors-example.json"))
                         slurp
                         (s/assert #(not (str/blank? %)))
                         json/read-str
