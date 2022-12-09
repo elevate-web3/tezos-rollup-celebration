@@ -14,7 +14,7 @@ code in case of issues :
 
 010AAAAA 100AAAAA 110AAACC VVVVVVVV
    High-bit Middle-bit low-bit
-Changing the representation of color to (00 : R, 01 : G, 10 : B)
+Changing the representation of color to (0x00 : R, 0x01 : G, 0x10 : B, 0xff : error)
 ## Run the collector
 cargo run -- -f <logfile> -p <port>
 

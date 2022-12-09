@@ -16,6 +16,29 @@ struct Args {
     port: u16,
 }
 
+fn encode_color(color_ascii: char) -> u8 {
+    match color_ascii {
+        'R' => 0x00,
+        'G' => 0x01,
+        'B' => 0x02,
+        _ => 0xFF, // should be tratated as an error
+    }
+}
+
+fn encode_transaction(
+    low_bit_address: u8,
+    high_bit_address: u8,
+    color_ascii: u8,
+    value: u8,
+) -> [u8; 4] {
+    [
+        high_bit_address | 0x40,
+        low_bit_address >> 3 | 0x80,
+        (low_bit_address & 0x03) << 2 | encode_color(color_ascii as char) | 0xC0,
+        value,
+    ]
+}
+
 fn main() -> anyhow::Result<()> {
     //Collect command line arguments
 
@@ -70,6 +93,8 @@ fn main() -> anyhow::Result<()> {
 
     //Accept a connection
     loop {
+        let mut rchunck: &[u8] = &[];
+        let mut remainder: Vec<_>;
         if should_stop {
             break;
         }
@@ -101,7 +126,13 @@ fn main() -> anyhow::Result<()> {
                             if read_amount == 0 {
                                 break;
                             }
-                            match socket.write(&buf[..read_amount]) {
+                            remainder = [rchunck, &buf[..read_amount]].concat();
+                            let iter = remainder.chunks_exact(4);
+                            rchunck = iter.remainder();
+                            let buf: Vec<u8> = iter
+                                .flat_map(|x| encode_transaction(x[0], x[1], x[2], x[3]))
+                                .collect();
+                            match socket.write_all(&buf) {
                                 Ok(_) => {
                                     pointer += read_amount;
                                 }
