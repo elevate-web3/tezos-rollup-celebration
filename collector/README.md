@@ -2,7 +2,8 @@
 
 The collector get data for the log in this format
 
-000AAAAA AAAAAAAA CCCCCCCC VVVVVVVV
+AAAAAAAA 000AAAAA CCCCCCCC VVVVVVVV
+LOW-Bit  High-Bit
 
 with A representing an account on the roll-up,
 C representing the color ('R','G','B' in ascii),
@@ -12,7 +13,7 @@ The collector transform the data in order to add a synchronisation
 code in case of issues :
 
 010AAAAA 100AAAAA 110AAACC VVVVVVVV
-
+   High-bit Middle-bit low-bit
 Changing the representation of color to (00 : R, 01 : G, 10 : B)
 ## Run the collector
 cargo run -- -f <logfile> -p <port>
