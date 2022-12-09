@@ -1,10 +1,5 @@
 FROM archlinux:base-devel
 
-# Setup environment variables
-ENV FILE "/tmp/log_file.txt"
-ENV PORT 1234
-
-
 # Setup pacman and update system
 RUN pacman-key --init && pacman -Syu --noconfirm
 
@@ -18,5 +13,8 @@ COPY . .
 # build
 RUN cargo build --release
 
+# install
+RUN mv target/release/collector /usr/local/bin/collector
+
 # Run server
-CMD cargo run --release -- -f ${FILE} -p ${PORT}
+ENTRYPOINT ["/usr/local/bin/collector"]
