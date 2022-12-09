@@ -1,0 +1,3 @@
+[submodule "scoru-demo-quick-and-dirty"]
+	path = scoru-demo-quick-and-dirty
+	url = git@gitlab.com:yrg/scoru-demo-quick-and-dirty.git
