@@ -3,10 +3,15 @@ open Libimage
 let args = Array.to_list Sys.argv |> List.tl
 
 let () =
-  if List.length args <= 1 then
-    failwith "gen.exe [nb_output] [file1.ppm] ... [fileN.ppm]"
+  if List.length args <= 2 then
+    failwith "gen.exe [tps] [nb_output] [file1.ppm] ... [fileN.ppm]"
 
-let nb_output = List.hd args |> int_of_string
+let tps, nb_output, images =
+  match args with
+  | tps :: nb_output :: images ->
+    float_of_string tps, int_of_string nb_output, images
+  | _ ->
+    assert false
 
 let nb_rows, nb_cols =
   let open Seq in
@@ -62,7 +67,7 @@ let out_filenames, couts =
 
 let couts = Array.of_list couts
 
-let images = List.tl args |> List.map Image.load
+let images = List.map Image.load images
 
 let width = (List.hd images).Image.w
 
@@ -96,11 +101,16 @@ let account_of x y =
   and y0 = y mod height_cell in
   y0 * width_cell + x0
 
-(* let encode_little_endian x =
- *   (x land 0xff, (x lsr 8) land 0xff)
- *
- * let decode_little_endian (a, b) =
- *   (b lsl 8) lor a *)
+let time_per_transaction =
+  1. /. tps /. float_of_int nb_output
+
+let wait_for_tps =
+  let last = ref 0. in
+  fun () ->
+    let now = Unix.gettimeofday () in
+    let delta = max 0. (time_per_transaction -. (now -. !last)) in
+    last := now;
+    Unix.sleepf delta
 
 let push_pixel x y c =
   let open Image in
@@ -112,18 +122,32 @@ let push_pixel x y c =
     output_byte cout (account land 0xff);
     output_byte cout ((account lsr 8) land 0xff)
   in
+  wait_for_tps ();
   write_account ();
   output_byte cout (Char.code 'R');
   output_byte cout (red c);
+  wait_for_tps ();
   write_account ();
   output_byte cout (Char.code 'G');
   output_byte cout (green c);
+  wait_for_tps ();
   write_account ();
   output_byte cout (Char.code 'B');
-  output_byte cout (blue c)
+  output_byte cout (blue c);
+  flush cout
 
 let process img =
-  Image.iter img @@ push_pixel
+  for x0 = 0 to width_cell - 1 do
+    for y0 = 0 to height_cell - 1 do
+      for o = 0 to nb_output - 1 do
+        let col = o mod nb_cols
+        and row = o / nb_cols in
+        let x = x0 + col * width_cell
+        and y = y0 + row * height_cell in
+        push_pixel x y img.Image.pixels.(x).(y)
+      done
+    done
+  done
 
 let announce () =
   Format.printf "%d %d %d %d %s\n%!"
