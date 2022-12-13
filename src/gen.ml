@@ -3,13 +3,13 @@ open Libimage
 let args = Array.to_list Sys.argv |> List.tl
 
 let () =
-  if List.length args <= 2 then
-    failwith "gen.exe [tps] [nb_output] [file1.ppm] ... [fileN.ppm]"
+  if List.length args <= 3 then
+    failwith "gen.exe [mode] [tps] [nb_output] [file1.ppm] ... [fileN.ppm]"
 
-let tps, nb_output, images =
+let mode, tps, nb_output, images =
   match args with
-  | tps :: nb_output :: images ->
-    float_of_string tps, int_of_string nb_output, images
+  | mode :: tps :: nb_output :: images ->
+    mode, float_of_string tps, int_of_string nb_output, images
   | _ ->
     assert false
 
@@ -153,8 +153,11 @@ let announce () =
   Format.printf "%d %d %d %d %s\n%!"
     width height nb_rows nb_cols (String.concat " " out_filenames)
 
+let single_announce () =
+  Format.printf "%s\n%!" (List.hd out_filenames)
+
 let rec omega f = f (); omega f
 
 let () =
-  announce ();
+  if mode = "single" then single_announce () else announce ();
   omega @@ fun () -> List.iter process images;
