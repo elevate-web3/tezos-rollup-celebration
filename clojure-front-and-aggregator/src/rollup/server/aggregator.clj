@@ -42,6 +42,15 @@
               2r10 :B)
      :value C}))
 
+(defn concat-byte-arrays [byte-arrays]
+  (when (not-empty byte-arrays)
+    (let [total-size (reduce + (map count byte-arrays))
+          result     (byte-array total-size)
+          bb         (java.nio.ByteBuffer/wrap result)]
+      (doseq [ba byte-arrays]
+        (.put bb ba))
+      result)))
+
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [m (s/keys :req [::collector/output-stream ::flush-ms])]
   (println "Starting aggregator")
@@ -69,11 +78,8 @@
               (nil? byte-array-vec) nil ;; stream closed
               ;; ---
               (not-empty? byte-array-vec)
-              (do (ms/put! output-stream "event: bytes\ndata: ")
-                  (doseq [ba byte-array-vec]
-                    (->> (Hex/encodeHexString ^bytes ba)
-                         (ms/put! output-stream)))
-                  (ms/put! output-stream "\n\n")
+              (do (->> (concat-byte-arrays byte-array-vec)
+                       (ms/put! output-stream))
                   (md/recur))
               ;; ---
               :else (md/recur))))))
@@ -93,7 +99,7 @@
               ;; ---
               (identical? val ::tick-tps)
               (do #_(println "TPS: " tps-count)
-                  (ms/put! output-stream (str "event: tps\ndata: " tps-count "\n\n"))
+                  (ms/put! output-stream (pr-str {:tps 10}))
                   ;; DEV CODE: clean tps
                   (md/recur byte-array-vec 0))
               ;; ---
@@ -134,5 +140,9 @@
                (mapcat identity)
                (partition-all 4)
                (map bytes->transaction))))
+
+  (->> trame
+       (mapv byte-array)
+       concat-byte-arrays)
 
   )

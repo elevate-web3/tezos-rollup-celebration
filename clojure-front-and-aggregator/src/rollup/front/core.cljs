@@ -1,10 +1,12 @@
 (ns rollup.front.core
   (:require [clojure.core.async :as a :include-macros true]
+            [clojure.edn :as edn]
             [clojure.spec.alpha :as s]
             [goog.dom :as d]
             [goog.string :as gstr]
+            [orchestra.core :as _ :include-macros true]
             [rollup.front.util :as u]
-            [orchestra.core :as _ :include-macros true]))
+            [wscljs.client :as ws]))
 
 (s/def ::previous-count integer?)
 (s/def ::previous-progress-percentage integer?)
@@ -32,10 +34,7 @@
       (let [[val port] (a/alts! [event-ch anim-frame-ch])]
         (cond
           (identical? port event-ch)
-          (recur (-> (count val)
-                     (/ 2) ;; For the time being bytes are sent as hex string. One byte is two characters.
-                     (/ 10) ;; To lower the speed
-                     js/Math.round
+          (recur (-> (.-byteLength val)
                      (+ byte-count)))
           ;; ---
           (identical? port anim-frame-ch)
@@ -52,7 +51,6 @@
               (show-pixel-range previous-count byte-count)
               (-> (d/getHTMLElement "byte-count")
                   (d/setTextContent (-> byte-count
-                                        (* 10) ;; To recover original number of bytes (see l. 37)
                                         str)))
               (when-not (identical? progress-percentage (::previous-progress-percentage val))
                 (-> (js/document.getElementById "progress-bar")
@@ -83,12 +81,22 @@
                                  (.getImageData 0 0 width height))
                   data (.-data image-data)
                   data-clone (js/Uint8ClampedArray.from data)]
-              (let [es (js/EventSource. "/data-stream")]
-                (.addEventListener es "bytes" (fn [event]
-                                                (a/put! event-ch (.-data event))))
-                (.addEventListener es "tps" (fn [event]
-                                              (-> (d/getHTMLElement "tps")
-                                                  (d/setTextContent (.-data event))))))
+              (ws/create
+                (str "ws://" js/window.location.host "/data-stream")
+                {;; :on-open (fn [e] (js/console.log "WS Open: " e))
+                 ;; :on-close (fn [e] (js/console.log "WS Close: " e))
+                 ;; :on-error (fn [e] (js/console.log "WS Error: " e))
+                 :on-message (fn [e]
+                               (let [data (.-data e)]
+                                 (if (string? data)
+                                   ;; String
+                                   (when-let [tps (some-> (edn/read-string data) :tps)]
+                                     (-> (d/getHTMLElement "tps")
+                                         (d/setTextContent (str tps))))
+                                   ;; Blob
+                                   (-> (.arrayBuffer data)
+                                       (.then (fn [byte-buffer]
+                                                (a/put! event-ch byte-buffer)))))))})
               (start-update-loop {::u/canvas-el el
                                   ::u/original-image-uint-array data-clone
                                   ::u/randomized-indexes (-> (.-length data-clone)

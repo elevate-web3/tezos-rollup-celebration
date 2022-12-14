@@ -1,9 +1,11 @@
 (ns rollup.server.handlers.public
-  (:require [clojure.edn :as edn]
+  (:require [aleph.http :as http]
+            [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
             [hiccup.util :as hu]
             [hiccup2.core :as h]
+            [manifold.deferred :as md]
             [manifold.stream :as ms]
             [orchestra.core :as _]
             [ring.util.response :as resp]
@@ -45,7 +47,7 @@
              [:div.h1
               "Race to 120 million"]]
             [:canvas#my-canvas.d-block.mx-auto.mt-3
-             {:style "border: 1px solid black;", :width "680", :height "403"}]
+             {:style "border: 1px solid black;", :width "2500", :height "2000"}]
             [:div.text-center.mt-4
              [:div.d-inline-block
               {:style "width: 680px;"}
@@ -73,16 +75,16 @@
 ;; https://gist.github.com/jeroenvandijk/67d064e0bb08b900e656
 (_/defn-spec data-stream ::rtng/response
   [req ::rtng/request]
-  (let [source-stream (::aggregator/output-stream req)
-        sse-streams* (::rtng/sse-streams* req)
+  (let [{source-stream ::aggregator/output-stream
+         websockets* ::rtng/websockets*} req
         stream (ms/stream)]
-    (ms/on-closed stream (fn clean []
-                           (swap! sse-streams* disj stream)))
-    (ms/connect source-stream stream)
-    (swap! sse-streams* conj stream)
-    {:status 200
-     :headers {"Content-Type" "text/event-stream"
-               "Cache-Control" "no-cache, no-store, max-age=0, must-revalidate"
-               "Pragma" "no-cache"}
-     :body stream}))
-
+    (-> (md/let-flow [socket (http/websocket-connection req)]
+          (swap! websockets* conj socket)
+          (ms/on-closed stream (fn clean []
+                                 (swap! websockets* disj socket)))
+          (ms/connect source-stream socket)
+          socket)
+        (md/catch (fn [_]
+                    {:status 400
+                     :headers {"content-type" "application/text"}
+                     :body "Expected a websocket request."})))))

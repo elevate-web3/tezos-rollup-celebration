@@ -16,20 +16,20 @@
 (_/defn-spec start-webserver! ::aleph-server
   [m (s/keys :req [::aggregator/output-stream]
              :req-un [::port])]
-  (let [sse-streams* (atom #{})]
-    (letfn [(wrap-sse-streams [handler]
-              (fn assoc-sse-streams [req]
+  (let [websockets* (atom #{})]
+    (letfn [(wrap-websockets [handler]
+              (fn assoc-websockets [req]
                 (handler
-                  (assoc req ::rtng/sse-streams* sse-streams*))))]
+                  (assoc req ::rtng/websockets* websockets*))))]
       {::aleph-server (-> (r/make-ring-reitit-router m)
-                          wrap-sse-streams
+                          wrap-websockets
                           (http/start-server (select-keys m [:port])))
-       ::rtng/sse-streams* sse-streams*})))
+       ::rtng/websockets* websockets*})))
 
 (_/defn-spec stop-webserver! any?
-  [m (s/keys :req [::aleph-server ::rtng/sse-streams*])]
+  [m (s/keys :req [::aleph-server ::rtng/websockets*])]
   (let [{^java.io.Closeable server ::aleph-server
-         sse-streams* ::rtng/sse-streams*} m]
-    (doseq [stream @sse-streams*]
+         websockets* ::rtng/websockets*} m]
+    (doseq [stream @websockets*]
       (ms/close! stream))
     (.close server)))

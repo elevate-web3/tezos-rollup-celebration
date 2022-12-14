@@ -4,12 +4,12 @@
             [rollup.server.aggregator :as aggregator])
   (:import clojure.lang.Atom))
 
-(s/def ::sse-streams* #(and (instance? Atom %)
-                            (-> % deref set?)))
+(s/def ::websockets* #(and (instance? Atom %)
+                           (-> % deref set?)))
 (s/def ::request (s/keys :req [::aggregator/output-stream
                                ::reitit/match
                                ::reitit/router
-                               ::sse-streams*]))
+                               ::websockets*]))
 
 (s/def ::response (s/keys :req-un [::headers ::status ::body]))
 
