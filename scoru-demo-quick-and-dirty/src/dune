@@ -1,0 +1,14 @@
+(executable
+ (name gen)
+ (modules Gen)
+ (libraries libimage unix))
+
+(executable
+ (name visu)
+ (modules Visu)
+ (libraries libimage unix graphics))
+
+(library
+  (name libimage)
+  (modules Image)
+  (libraries unix graphics))

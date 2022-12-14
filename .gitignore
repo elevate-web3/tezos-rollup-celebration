@@ -27,3 +27,6 @@ pom.xml.asc
 #Rust stuff
 collector/target/*
 mockup_log/target/*
+
+# Scoru
+/scoru-demo-quick-and-dirty/*~
