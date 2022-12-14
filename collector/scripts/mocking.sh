@@ -19,5 +19,4 @@ echo -n 'Waiting for the log file to be created'
 while [ ! -s "$F" ]; do sleep 1; echo -n '.'; done
 echo 'done'
 echo 'Running collector.'
-collector --log-path $(cat "$F") --port "$PORT" &
-watch du -b "$F"
+collector --log-path $(cat "$F") --port "$PORT"
