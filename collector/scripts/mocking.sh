@@ -12,11 +12,12 @@ NB_COLS="$4"
 PORT="$5"
 TPS="$6"
 
-shift 5
+shift 6
 F=$(mktemp)
 gen "$TPS" "$ROW" "$COL" "$NB_ROWS" "$NB_COLS" $* > "$F" &
 echo -n 'Waiting for the log file to be created'
 while [ ! -s "$F" ]; do sleep 1; echo -n '.'; done
 echo 'done'
 echo 'Running collector.'
-collector --log-path $(cat "$F") --port "$PORT"
+collector --log-path $(cat "$F") --port "$PORT" &
+watch du -b "$F"
