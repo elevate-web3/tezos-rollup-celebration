@@ -7,8 +7,10 @@ run-aggregator-with-default-json-config:
 download-deps:
 	clojure -P -M:prod -m rollup.core
 
-build-prod-cljs:
+clean-cljs:
 	rm -rf ./resources/public/cljs
+
+build-prod-cljs: clean-cljs
 	clojure -M:cljs-prod release frontend
 
 open-browser-page:
