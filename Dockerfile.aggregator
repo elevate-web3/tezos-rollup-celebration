@@ -10,7 +10,7 @@ RUN pacman -S --noconfirm jdk-openjdk clojure
 ENV CONFIG resources/config.json
 
 # Copy project files
-COPY . .
+COPY ./clojure-front-and-aggregator .
 
 # build
 RUN clojure -M:cljs-prod release frontend

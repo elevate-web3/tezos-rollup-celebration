@@ -1,0 +1,28 @@
+FROM archlinux:base-devel
+
+# Setup pacman and update system
+RUN pacman-key --init && pacman -Syu --noconfirm
+
+# Install cargo
+RUN pacman -Sy --noconfirm rustup \
+	&& rustup toolchain install stable
+
+# install OPAM
+RUN pacman --noconfirm -Sy libx11 opam git && opam init -y && opam install -y graphics dune && eval $(opam env)
+
+# Copy collector files
+COPY ./collector .
+
+# build and install collector
+RUN cargo build --release && mv target/release/collector /usr/local/bin/collector
+
+# Copy mockup files
+COPY ./scoru-demo-quick-and-dirty ./scoru-demo-quick-and-dirty
+
+#build and install mockup
+RUN eval $(opam env) && cd scoru-demo-quick-and-dirty && make && cp gen.exe /usr/local/bin/gen
+
+RUN chmod a+rx scripts/*.sh
+
+# Run server
+ENTRYPOINT ["scripts/test.sh"]
