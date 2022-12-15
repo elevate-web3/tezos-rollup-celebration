@@ -1,10 +1,11 @@
 (ns rollup.server.collector
-  (:require [clojure.spec.alpha :as s]
-            [rollup.server.util :as u]
-            [orchestra.core :as _]
+  (:require [aleph.tcp :as tcp]
+            [clojure.spec.alpha :as s]
             [manifold.deferred :as md]
             [manifold.stream :as ms]
-            [aleph.tcp :as tcp]))
+            [orchestra.core :as _]
+            [rollup.server.util :as u]
+            [rollup.shared.util :as su]))
 
 (s/def ::host string?)
 (s/def ::port integer?)
@@ -45,8 +46,10 @@
                                      (comp
                                        (partition-all 4)
                                        (map (fn [bytes]
-                                              (u/concat-byte-arrays [(byte-array [row col])
-                                                                     (byte-array bytes)])))))
+                                              (let [uint-array (u/concat-byte-arrays [(byte-array [row col])
+                                                                                      (byte-array bytes)])]
+                                                #_(println (su/bytes->transaction uint-array))
+                                                uint-array)))))
                                (ms/put-all! output-stream))
                           (fn put-all-success [_]
                             (md/recur))))))))))

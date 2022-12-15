@@ -5,6 +5,7 @@
             [goog.dom :as d]
             [orchestra.core :as _ :include-macros true]
             [rollup.front.util :as u]
+            [rollup.shared.util :as su]
             [wscljs.client :as ws]))
 
 (s/def ::previous-count integer?)
@@ -22,34 +23,6 @@
 (def ^:const transaction-completion 120000000)
 (def ^:const bytes-per-message 6)
 
-(defn bytes->transaction [uint-array]
-  (let [row (aget uint-array 0)
-        col (aget uint-array 1)
-        b1 (aget uint-array 2)
-        b2 (aget uint-array 3)
-        b3 (aget uint-array 4)
-        b4 (aget uint-array 5)
-        ;; ---
-        A1 (bit-and b1 2r11111)
-        A2 (bit-and b2 2r11111)
-        A3 (-> (bit-and b3 2r11100)
-               (bit-shift-right 2))
-        A (-> A1
-              (* 2r100000)
-              (+ A2)
-              (* 2r1000)
-              (+ A3))
-        C (case (bit-and b3 2r11)
-            2r00 :R
-            2r01 :G
-            2r10 :B)
-        V b4]
-    #_{:row row :col col :account-number A :value V :color (case C
-                                                           2r00 :R
-                                                           2r01 :G
-                                                           2r10 :B)}
-    #js [row col A C V]))
-
 (def ^:const node-width 100)
 (def ^:const node-height 50)
 (def ^:const canvas-width 2500)
@@ -62,7 +35,8 @@
         context (-> el (.getContext "2d"))
         image-data (.getImageData context 0 0 width height)
         data (.-data image-data)]
-    (doseq [[row col account color value] msg-vec]
+    (doseq [[row col account color value #_:as #_msg] msg-vec]
+      ;; (js/console.log msg)
       (let [x-cell (rem account node-width)
             y-cell (quot account node-width)
             x (-> (* col node-width)
@@ -153,7 +127,7 @@
                                                                    (+ bytes-per-message))]
                                                        (-> uint-array
                                                            (.slice begin end)
-                                                           bytes->transaction)))]
+                                                           su/bytes->transaction)))]
                                       (a/put! event-ch (vec messages)))))))))})
   (u/reset-canvas (get-canvas-el!))
   (start-update-loop)
