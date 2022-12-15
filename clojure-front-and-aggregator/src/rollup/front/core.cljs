@@ -40,16 +40,36 @@
               (+ A2)
               (* 2r1000)
               (+ A3))
-        C (bit-and b3 2r11)
-        V (bit-and b4 0xff)]
-    {:row row
-     :col col
-     :account-number A
-     :color (case C
-              2r00 :R
-              2r01 :G
-              2r10 :B)
-     :value V}))
+        C (case (bit-and b3 2r11)
+            2r00 :R
+            2r01 :G
+            2r10 :B)
+        V b4]
+    #_{:row row :col col :account-number A :value V :color (case C
+                                                           2r00 :R
+                                                           2r01 :G
+                                                           2r10 :B)}
+    #js [row col A C V]))
+
+(defn show-pixels [msg-vec]
+  (let [el (get-canvas-el!)
+        width (.-width el)
+        height (.-height el)
+        context (-> el (.getContext "2d"))
+        image-data (.getImageData context 0 0 width height)
+        data (.-data image-data)]
+    (doseq [[row col account color value] msg-vec]
+      (aset data
+            (+ (* row col 100 50 4)
+               (* account 4)
+               (case color
+                 :R 0
+                 :G 1
+                 :B 2))
+            value))
+    (-> context
+        (.putImageData image-data 0 0))
+    nil))
 
 (_/defn-spec create-animation-frame-handler fn?
   [m (s/keys :req [::previous-count ::previous-progress-percentage])]
@@ -58,16 +78,16 @@
 
 (_/defn-spec start-update-loop nil?
   []
-  (a/go-loop [byte-buffer-vec []]
+  (a/go-loop [msg-vec []]
     (let [[val port] (a/alts! [event-ch anim-frame-ch])]
       (cond
         (identical? port event-ch)
-        (do #_(js/console.log (.-length val))
-            (recur (conj byte-buffer-vec val)))
+        (do #_(js/console.log (clj->js val))
+            (recur (into msg-vec val)))
         ;; ---
         (identical? port anim-frame-ch)
         (let [{previous-count ::previous-count} val
-              new-count (+ previous-count (count byte-buffer-vec))
+              new-count (+ previous-count (count msg-vec))
               progress-percentage (let [percentage (-> (/ new-count transaction-completion)
                                                        (* 1000)
                                                        js/Math.floor
@@ -77,7 +97,8 @@
                                       percentage))]
           (when-not (identical? new-count previous-count)
             ;; Update view
-            #_(show-pixel-range previous-count byte-count)
+            #_(js/console.log (count msg-vec))
+            (show-pixels msg-vec)
             #_(-> (d/getHTMLElement "byte-count")
                   (d/setTextContent (-> byte-count
                                         str)))
@@ -112,40 +133,29 @@
                        ;; Blob
                        (-> (.arrayBuffer data)
                            (.then (fn [array-buffer]
-                                    (js/console.log (clj->js
+                                    #_(let [uint-array (js/Uint8Array. array-buffer)]
+                                      (js/console.log (.-length uint-array))
+                                      #_(->> 
+                                        ()
+                                        bytes->transaction
+                                        (a/put! event-ch)))
+                                    #_(js/console.log (clj->js
                                                       (bytes->transaction
                                                         (js/Uint8Array. array-buffer))))
                                     #_(->> (js/Uint8Array.from byte-buffer)
                                          (a/put! event-ch))
-                                    #_(let [quo (quot (.-byteLength byte-buffer)
+                                    (let [uint-array (js/Uint8Array. array-buffer)
+                                          ;; _ (js/console.log uint-array)
+                                          quo (quot (.-length uint-array)
                                                     bytes-per-message)
                                           messages (for [i (range quo)]
                                                      (let [begin (* i bytes-per-message)
                                                            end (-> begin
-                                                                   (+ (dec bytes-per-message)))]
-                                                       (-> byte-buffer
+                                                                   (+ bytes-per-message))]
+                                                       (-> uint-array
                                                            (.slice begin end)
-                                                           js/Uint8Array.from)))]
-                                      (doseq [message messages]
-                                        (a/put! event-ch message)))))))))})
+                                                           bytes->transaction)))]
+                                      (a/put! event-ch (vec messages)))))))))})
+  (u/reset-canvas (get-canvas-el!))
   (start-update-loop)
   nil)
-
-(comment
-  (js/console.log
-    (-> (js/ArrayBuffer. 12)
-        .-byteLength))
-
-  (let [[a b c] (js/Uint8Array. #js [1 2 3 4 5 6 7 8])]
-    (js/console.log #js [a b c]))
-
-  (let [ia (js/Uint8Array. #js [1 2 3 4 5 6 7 8])]
-    (aget ia 0))
-
-  (-> (range 12)
-      js/ArrayBuffer.from
-      (aget 1))
-
-  (-> 6
-      js/Math.floor)
-  )

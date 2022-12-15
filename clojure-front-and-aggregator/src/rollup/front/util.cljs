@@ -19,7 +19,7 @@
         (aset data i 0)
         (aset data (+ i 1) 0)
         (aset data (+ i 2) 0)
-        (aset data (+ i 3) 0)
+        (aset data (+ i 3) 255)
         (recur (+ i 4))))
     (-> context
         (.putImageData image-data 0 0))
