@@ -99,9 +99,8 @@
             ;; Update view
             #_(js/console.log (count msg-vec))
             (show-pixels msg-vec)
-            #_(-> (d/getHTMLElement "byte-count")
-                  (d/setTextContent (-> byte-count
-                                        str)))
+            (-> (d/getHTMLElement "transaction-count")
+                (d/setTextContent (str new-count)))
             (when-not (identical? progress-percentage (::previous-progress-percentage val))
               (-> (js/document.getElementById "progress-bar")
                   (.setAttribute "style" (str "width:" progress-percentage "%;transition:opacity 0s linear;")))))
@@ -133,17 +132,6 @@
                        ;; Blob
                        (-> (.arrayBuffer data)
                            (.then (fn [array-buffer]
-                                    #_(let [uint-array (js/Uint8Array. array-buffer)]
-                                      (js/console.log (.-length uint-array))
-                                      #_(->> 
-                                        ()
-                                        bytes->transaction
-                                        (a/put! event-ch)))
-                                    #_(js/console.log (clj->js
-                                                      (bytes->transaction
-                                                        (js/Uint8Array. array-buffer))))
-                                    #_(->> (js/Uint8Array.from byte-buffer)
-                                         (a/put! event-ch))
                                     (let [uint-array (js/Uint8Array. array-buffer)
                                           ;; _ (js/console.log uint-array)
                                           quo (quot (.-length uint-array)

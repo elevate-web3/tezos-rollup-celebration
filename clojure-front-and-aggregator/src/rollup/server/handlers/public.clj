@@ -59,8 +59,8 @@
                                                 :aria-valuemin "0",
                                                 :aria-valuemax "100"}]]]]
             [:div.mt-3.text-center
-             [:span.h3 "Bytes received: "]
-             [:span#byte-count.h3 "0"]]
+             [:span.h3 "Number of transactions: "]
+             [:span#transaction-count.h3 "0"]]
             [:div.mt-3.text-center
              [:span.h3 "TPS: "]
              [:span#tps.h3 "0"]]
