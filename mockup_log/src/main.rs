@@ -14,6 +14,7 @@ use tokio::time::{self, Instant};
 
 /// Adjust me to change TPS.
 const INTERVAL_MICROS: u64 = 999;
+// const INTERVAL_MICROS: u64 = 2_000_000;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -34,7 +35,7 @@ async fn main() -> Result<()> {
     let mut file = File::create(log_file).await?;
 
     let mut rng = rand::thread_rng();
-    let account_numbers = Uniform::from(0..1000);
+    let account_numbers = Uniform::from(0..5000);
     let colours = Uniform::from(0..3);
     let brightness = Uniform::from(0..=255);
 
@@ -48,6 +49,7 @@ async fn main() -> Result<()> {
     loop {
         interval.tick().await;
         let account: u16 = account_numbers.sample(&mut rng);
+        // std::println!("{}", account);
         let colour: u8 = match colours.sample(&mut rng) {
             0 => b'R',
             1 => b'G',
