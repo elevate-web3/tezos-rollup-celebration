@@ -78,7 +78,7 @@
   [["" {:middleware [wrap-defaults-site]}
     ["/" {:name :home-page
           :get (h public-h/home-page)}]]
-   ["" {:middleware [wrap-defaults-api]}
+   ["" #_{:middleware [wrap-defaults-api]}
     ["/data-stream" {:name :data-stream
                      :get (h public-h/data-stream)}]]])
 
