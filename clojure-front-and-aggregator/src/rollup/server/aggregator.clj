@@ -23,25 +23,6 @@
       (->> (format "%8s"))
       (.replace " " "0")))
 
-(defn bytes->transaction [[b1 b2 b3 b4]]
-  (let [A1 (bit-and b1 2r11111)
-        A2 (bit-and b2 2r11111)
-        A3 (-> (bit-and b3 2r11100)
-               (bit-shift-right 2))
-        A (-> A1
-              (* 2r100000)
-              (+ A2)
-              (* 2r1000)
-              (+ A3))
-        B (bit-and b3 2r11)
-        C (bit-and b4 0xff)]
-    {:node-number A
-     :color (case B
-              2r00 :R
-              2r01 :G
-              2r10 :B)
-     :value C}))
-
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [m (s/keys :req [::collector/output-stream ::flush-ms])]
   (println "Starting aggregator")
@@ -124,7 +105,8 @@
              (comp
                (mapcat identity)
                (partition-all 4)
-               (map bytes->transaction))))
+               ;; (map bytes->transaction)
+               )))
 
   (->> trame
        (mapv byte-array)
