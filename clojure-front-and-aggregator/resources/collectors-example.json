@@ -1,1 +1,4 @@
-[{"host":"localhost", "port":1234}]
+[{"host":"localhost",
+  "port":1234,
+  "row": 2,
+  "column": 1}]

@@ -23,9 +23,13 @@
                         json/read-str
                         (s/assert (s/coll-of map? :kind vector?))
                         (mapv #(do {::collector/host (get % "host")
-                                    ::collector/port (get % "port")}))
+                                    ::collector/port (get % "port")
+                                    ::collector/row (get % "row")
+                                    ::collector/column (get % "column")}))
                         (s/assert (s/coll-of (s/keys :req [::collector/host
-                                                           ::collector/port]))))]
+                                                           ::collector/port
+                                                           ::collector/row
+                                                           ::collector/column]))))]
     {:components
      {::collectors {:start `(collector/start ~collectors)
                     :stop `collector/stop}
