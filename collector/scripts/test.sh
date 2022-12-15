@@ -8,5 +8,5 @@ fi
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 "$SCRIPT_DIR"/mocking.sh "$1" "$2" 40 25 "$3" "$4" \
-             /scoru-demo-quick-and-dirty/img/dogami.ppm \
-             /scoru-demo-quick-and-dirty/img/objkt.ppm
+             ../scoru-demo-quick-and-dirty/img/dogami.ppm \
+             ../scoru-demo-quick-and-dirty/img/objkt.ppm
