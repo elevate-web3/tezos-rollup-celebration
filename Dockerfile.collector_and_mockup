@@ -8,7 +8,7 @@ RUN pacman -Sy --noconfirm rustup \
 	&& rustup toolchain install stable
 
 # install OPAM
-RUN pacman --noconfirm -Sy libx11 opam git && opam init -y && opam install -y graphics dune && eval $(opam env)
+RUN pacman --noconfirm -Sy libx11 opam && opam init -y && opam install -y graphics dune && eval $(opam env)
 
 # Copy collector files
 COPY ./collector .
