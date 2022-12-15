@@ -11,6 +11,16 @@
 
 (s/def ::output-stream ::u/stream)
 
+;; In a matrix of 25x40
+(defn add-random-position [ba]
+  (->> ba
+       (into []
+             (comp
+               (partition-all 4)
+               (map (fn [bytes]
+                      (u/concat-byte-arrays [(byte-array [(rand-int 25) (rand-int 40)])
+                                             (byte-array bytes)])))))))
+
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [configs (s/coll-of (s/keys :req [::host ::port]))]
   (println "Starting collector connections")
@@ -27,8 +37,11 @@
                   (fn [msg]
                     (if (identical? msg ::drained)
                       (println "Collector stream drained")
-                      (do (ms/put! output-stream msg)
-                          (md/recur))))))))
+                      (md/chain
+                        (->> (add-random-position msg)
+                             (ms/put-all! output-stream))
+                        (fn put-all-success [_]
+                          (md/recur)))))))))
           {::output-stream output-stream
            ::u/clean-fn (fn clean! []
                           (println "Cleaning collectors")

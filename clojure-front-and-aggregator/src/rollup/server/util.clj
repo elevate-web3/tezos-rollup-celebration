@@ -16,3 +16,13 @@
 (let [c (class (byte-array 1))]
   (defn byte-array? [x]
     (instance? c x)))
+
+(defn concat-byte-arrays [byte-arrays]
+  (when (not-empty byte-arrays)
+    (let [total-size (reduce + (map count byte-arrays))
+          result     (byte-array total-size)
+          bb         (java.nio.ByteBuffer/wrap result)]
+      (doseq [ba byte-arrays]
+        (.put bb ba))
+      result)))
+

@@ -42,27 +42,16 @@
               2r10 :B)
      :value C}))
 
-(defn concat-byte-arrays [byte-arrays]
-  (when (not-empty byte-arrays)
-    (let [total-size (reduce + (map count byte-arrays))
-          result     (byte-array total-size)
-          bb         (java.nio.ByteBuffer/wrap result)]
-      (doseq [ba byte-arrays]
-        (.put bb ba))
-      result)))
-
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [m (s/keys :req [::collector/output-stream ::flush-ms])]
   (println "Starting aggregator")
   (let [{collector-stream ::collector/output-stream} m
         ;; ---
         tick-stream (ms/periodically (::flush-ms m) (fn [] ::tick))
-        ;; DEV CODE: remove later
         tick-dev-tps (ms/periodically 1000 (fn [] ::tick-tps))
         merge-stream (let [stream (ms/stream)]
                        (ms/connect collector-stream stream)
                        (ms/connect tick-stream stream)
-                       ;; DEV CODE: remove later
                        (ms/connect tick-dev-tps stream)
                        stream)
         sending-stream (ms/stream)
@@ -78,7 +67,7 @@
               (nil? byte-array-vec) nil ;; stream closed
               ;; ---
               (not-empty? byte-array-vec)
-              (do (->> (concat-byte-arrays byte-array-vec)
+              (do (->> (u/concat-byte-arrays byte-array-vec)
                        (ms/put! output-stream))
                   (md/recur))
               ;; ---
@@ -86,7 +75,6 @@
     ;; Accumulating loop
     (md/future
       (md/loop [byte-array-vec []
-                ;; DEV CODE: remove later
                 tps-count 0]
         (md/chain
           (ms/take! merge-stream)
@@ -94,19 +82,16 @@
             (cond
               (identical? val ::tick)
               (do (ms/put! sending-stream byte-array-vec)
-                  ;; DEV CODE: clean tps
                   (md/recur [] tps-count))
               ;; ---
               (identical? val ::tick-tps)
               (do #_(println "TPS: " tps-count)
-                  (ms/put! output-stream (pr-str {:tps 10}))
-                  ;; DEV CODE: clean tps
+                  (ms/put! output-stream (pr-str {:tps tps-count}))
                   (md/recur byte-array-vec 0))
               ;; ---
               (u/byte-array? val)
               (md/recur (conj byte-array-vec val)
-                        ;; DEV CODE: clean tps
-                        (+ tps-count (-> val count (/ 4))))
+                        (inc tps-count))
               ;; stream is closed
               (nil? val) nil
               :else nil ;; TODO: check what can fail
@@ -143,6 +128,6 @@
 
   (->> trame
        (mapv byte-array)
-       concat-byte-arrays)
+       u/concat-byte-arrays)
 
   )
