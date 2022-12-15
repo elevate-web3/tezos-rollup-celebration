@@ -1,16 +1,16 @@
-run-10-collector-docker :
+run-collector-docker :
 	(trap 'kill 0' SIGINT; \
-	docker run --net=host collector:latest 1 1 1230 1000 &\
-	docker run --net=host collector:latest 1 1 1231 1000 &\
-	docker run --net=host collector:latest 1 1 1232 1000 &\
-	docker run --net=host collector:latest 1 1 1233 1000 &\
-	docker run --net=host collector:latest 1 1 1234 1000 &\
-	docker run --net=host collector:latest 1 1 1235 1000 &\
-	docker run --net=host collector:latest 1 1 1236 1000 &\
-	docker run --net=host collector:latest 1 1 1237 1000 &\
-	docker run --net=host collector:latest 1 1 1238 1000 &\
-	docker run --net=host collector:latest 1 1 1239 1000 \
+	for i in {1200..1290}; do \
+		docker run --name collector$$i --net=host collector:latest 1 1 123$$i 1000 & \
+	done; \
 	)
+
+kill-and-kill-docker :
+	for i in {1200..1290}; do \
+		docker kill collector$$i; \
+		docker rm collector$$i; \
+	done; \
+
 
 run-aggregator-docker :
 	docker run \
