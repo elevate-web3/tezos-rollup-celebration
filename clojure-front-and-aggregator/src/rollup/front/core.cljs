@@ -51,6 +51,11 @@
                                                            2r10 :B)}
     #js [row col A C V]))
 
+(def ^:const node-width 100)
+(def ^:const node-height 50)
+(def ^:const canvas-width 2500)
+(def ^:const canvas-height 2000)
+
 (defn show-pixels [msg-vec]
   (let [el (get-canvas-el!)
         width (.-width el)
@@ -59,14 +64,21 @@
         image-data (.getImageData context 0 0 width height)
         data (.-data image-data)]
     (doseq [[row col account color value] msg-vec]
-      (aset data
-            (+ (* row col 100 50 4)
-               (* account 4)
-               (case color
-                 :R 0
-                 :G 1
-                 :B 2))
-            value))
+      (let [x-cell (rem account node-width)
+            y-cell (quot account node-width)
+            x (-> (* col node-width)
+                  (+ x-cell))
+            y (-> (* row node-height)
+                  (+ y-cell))
+            i (-> (* y canvas-width)
+                  (+ x))]
+        (aset data
+              (+ (* i 4)
+                 (case color
+                   :R 0
+                   :G 1
+                   :B 2))
+              value)))
     (-> context
         (.putImageData image-data 0 0))
     nil))

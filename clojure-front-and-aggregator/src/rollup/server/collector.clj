@@ -18,7 +18,7 @@
              (comp
                (partition-all 4)
                (map (fn [bytes]
-                      (u/concat-byte-arrays [(byte-array [(rand-int 25) (rand-int 40)])
+                      (u/concat-byte-arrays [(byte-array [(rand-int 40) (rand-int 25)])
                                              (byte-array bytes)])))))))
 
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
