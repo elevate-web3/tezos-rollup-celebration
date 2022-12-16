@@ -34,7 +34,7 @@ fn encode_transaction(
     [
         high_bit_address | 0x40,
         low_bit_address >> 3 | 0x80,
-        (low_bit_address & 0x03) << 2 | encode_color(color_ascii as char) | 0xC0,
+        (low_bit_address & 0x07) << 2 | encode_color(color_ascii as char) | 0xC0,
         value,
     ]
 }
