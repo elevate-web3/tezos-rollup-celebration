@@ -1,5 +1,5 @@
 run-aggregator:
-	clojure -M:prod -m rollup.core
+	clojure -M:prod -m rollup.core --config=../config.json
 
 run-aggregator-with-default-json-config:
 	clojure -M:prod -m rollup.core --config=resources/collectors-example.json

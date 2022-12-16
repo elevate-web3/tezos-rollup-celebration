@@ -33,6 +33,7 @@ run-collector-docker :
 			$$row $$col $$port $(TPS) & \
 		done; \
 	done; \
+	wait \
 	)
 
 build-aggregator-docker :
