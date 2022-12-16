@@ -1,5 +1,6 @@
 rows = 5
 cols = 2
+TPS = 1000
 
 row_bound := $(shell echo $$(($(rows) - 1)))
 col_bound := $(shell echo $$(($(cols) - 1)))
@@ -21,9 +22,6 @@ run-one-collector-docker :
 		0 0 1200 1000
 
 run-collector-docker :
-	echo $(rows); \
-	echo $(row_bound); \
-	echo $(row_range); \
 	(trap 'kill 0' SIGINT; \
 	for row in $(row_range); do \
 		for col in $(col_range); do \
@@ -32,7 +30,7 @@ run-collector-docker :
 			docker run \
 			--name collector$$i \
 			--net=host collector:latest \
-			$$row $$col $$port 100000 & \
+			$$row $$col $$port $(TPS) & \
 		done; \
 	done; \
 	)
