@@ -1,3 +1,11 @@
+rows = 5
+cols = 2
+
+row_bound := $(shell echo $$(($(rows) - 1)))
+col_bound := $(shell echo $$(($(cols) - 1)))
+row_range := $(shell seq 0 $(row_bound))
+col_range := $(shell seq 0 $(col_bound))
+
 build-collector-docker :
 	docker build -t collector:latest -f Dockerfile.collector_and_mockup .
 
@@ -10,18 +18,21 @@ run-one-collector-docker :
 		--name collector \
 		--net=host \
 		collector:latest \
-		1 1 1234 1000
+		0 0 1200 1000
 
 run-collector-docker :
+	echo $(rows); \
+	echo $(row_bound); \
+	echo $(row_range); \
 	(trap 'kill 0' SIGINT; \
-	for row in {0..19}; do \
-		for col in {0..4}; do \
-			i=$$((($$row)*5+($$col))); \
+	for row in $(row_range); do \
+		for col in $(col_range); do \
+			i=$$((($$row)*$(cols)+($$col))); \
 			port=$$((1200+$$i)); \
 			docker run \
 			--name collector$$i \
 			--net=host collector:latest \
-			$$row $$col $$port 1000 & \
+			$$row $$col $$port 100000 & \
 		done; \
 	done; \
 	)
@@ -35,15 +46,18 @@ publish-aggregator-docker :
 
 run-aggregator-docker :
 	docker run \
-		-v $(PWD)/configs:/tmp \
-		-e CONFIG=/tmp/collectors-test10.json \
+		-v $(PWD):/tmp \
+		-e CONFIG=/tmp/config.json \
 		--net=host \
 		aggregator
 
 kill-and-clean-docker :
-	for i in {0..99}; do \
-		docker kill collector$$i; \
-		docker rm collector$$i; \
+	for row in $(row_range); do \
+		for col in $(col_range); do \
+			i=$$((($$row)*$(cols)+($$col))); \
+			docker kill collector$$i; \
+			docker rm collector$$i; \
+		done; \
 	done; \
 	docker kill aggregator; \
 	docker rm aggregator;

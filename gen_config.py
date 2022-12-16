@@ -1,12 +1,27 @@
-#! python3
+#! python
+
 import json
+import sys
+import getopt
 
 
-def main():
+def main(argv):
+    # Parse command line arguments
+    row_arg = ""
+    col_arg = ""
+    opts, args = getopt.getopt(argv, "r:c:", ["rows=", "columns="])
+    for opt, arg in opts:
+        if opt == "-r":
+            row_arg = arg
+        elif opt == "-c":
+            col_arg = arg
+    rows = int(row_arg)
+    cols = int(col_arg)
+    # Generate a config file for the nodes
     config_list = []
-    for row in range(0, 20):
-        for col in range(0, 5):
-            i = row*5 + col
+    for row in range(0, rows):
+        for col in range(0, cols):
+            i = row*cols + col
             port = 1200 + i
             config = {
                 "host": "localhost",
@@ -23,4 +38,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
