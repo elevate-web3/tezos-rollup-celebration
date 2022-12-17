@@ -28,33 +28,34 @@
 (def ^:const canvas-width 2500)
 (def ^:const canvas-height 2000)
 
-(defn show-pixels [msg-vec]
+(defn make-show-pixels-fn []
   (let [el (get-canvas-el!)
         width (.-width el)
         height (.-height el)
-        context (-> el (.getContext "2d"))
-        image-data (.getImageData context 0 0 width height)
-        data (.-data image-data)]
-    (doseq [[row col account color value #_:as #_msg] msg-vec]
-      ;; (js/console.log msg)
-      (let [x-cell (rem account node-width)
-            y-cell (quot account node-width)
-            x (-> (* col node-width)
-                  (+ x-cell))
-            y (-> (* row node-height)
-                  (+ y-cell))
-            i (-> (* y canvas-width)
-                  (+ x))]
-        (aset data
-              (+ (* i 4)
-                 (case color
-                   :R 0
-                   :G 1
-                   :B 2))
-              value)))
-    (-> context
-        (.putImageData image-data 0 0))
-    nil))
+        context (-> el (.getContext "2d" #js {"willReadFrequently" true}))]
+    (fn show-pixels [msg-vec]
+      (let [image-data (.getImageData context 0 0 width height)
+            data (.-data image-data)]
+        (doseq [[row col account color value #_:as #_msg] msg-vec]
+          ;; (js/console.log msg)
+          (let [x-cell (rem account node-width)
+                y-cell (quot account node-width)
+                x (-> (* col node-width)
+                      (+ x-cell))
+                y (-> (* row node-height)
+                      (+ y-cell))
+                i (-> (* y canvas-width)
+                      (+ x))]
+            (aset data
+                  (+ (* i 4)
+                     (case color
+                       :R 0
+                       :G 1
+                       :B 2))
+                  value)))
+        (-> context
+            (.putImageData image-data 0 0))
+        nil))))
 
 (_/defn-spec create-animation-frame-handler fn?
   [m (s/keys :req [::previous-count ::previous-progress-percentage])]
@@ -63,35 +64,36 @@
 
 (_/defn-spec start-update-loop nil?
   []
-  (a/go-loop [msg-vec []]
-    (let [[val port] (a/alts! [event-ch anim-frame-ch])]
-      (cond
-        (identical? port event-ch)
-        (do #_(js/console.log (clj->js val))
-            (recur (into msg-vec val)))
-        ;; ---
-        (identical? port anim-frame-ch)
-        (let [{previous-count ::previous-count} val
-              new-count (+ previous-count (count msg-vec))
-              progress-percentage (let [percentage (-> (/ new-count transaction-completion)
-                                                       (* 1000)
-                                                       js/Math.floor
-                                                       (/ 10))]
-                                    (if (> percentage 100)
-                                      100
-                                      percentage))]
-          (when-not (identical? new-count previous-count)
-            ;; Update view
-            #_(js/console.log (count msg-vec))
-            (show-pixels msg-vec)
-            (-> (d/getHTMLElement "transaction-count")
-                (d/setTextContent (str new-count)))
-            (when-not (identical? progress-percentage (::previous-progress-percentage val))
-              (-> (js/document.getElementById "progress-bar")
-                  (.setAttribute "style" (str "width:" progress-percentage "%;transition:opacity 0s linear;")))))
-          (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count new-count
-                                                                            ::previous-progress-percentage progress-percentage}))
-          (recur [])))))
+  (let [show-pixels (make-show-pixels-fn)]
+    (a/go-loop [msg-vec []]
+      (let [[val port] (a/alts! [event-ch anim-frame-ch])]
+        (cond
+          (identical? port event-ch)
+          (do #_(js/console.log (clj->js val))
+              (recur (into msg-vec val)))
+          ;; ---
+          (identical? port anim-frame-ch)
+          (let [{previous-count ::previous-count} val
+                new-count (+ previous-count (count msg-vec))
+                progress-percentage (let [percentage (-> (/ new-count transaction-completion)
+                                                         (* 1000)
+                                                         js/Math.floor
+                                                         (/ 10))]
+                                      (if (> percentage 100)
+                                        100
+                                        percentage))]
+            (when-not (identical? new-count previous-count)
+              ;; Update view
+              #_(js/console.log (count msg-vec))
+              (show-pixels msg-vec)
+              (-> (d/getHTMLElement "transaction-count")
+                  (d/setTextContent (str new-count)))
+              (when-not (identical? progress-percentage (::previous-progress-percentage val))
+                (-> (js/document.getElementById "progress-bar")
+                    (.setAttribute "style" (str "width:" progress-percentage "%;transition:opacity 0s linear;")))))
+            (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count new-count
+                                                                              ::previous-progress-percentage progress-percentage}))
+            (recur []))))))
   ;; Start the UI refresh loop
   (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count 0
                                                                     ::previous-progress-percentage 0}))
