@@ -30,3 +30,4 @@ mockup_log/target/*
 
 # Scoru
 /scoru-demo-quick-and-dirty/*~
+/scoru-demo-quick-and-dirty/_build/
