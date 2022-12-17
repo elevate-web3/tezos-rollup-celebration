@@ -1,6 +1,7 @@
 (ns user
   (:require [aleph.tcp :as tcp]
             [clj-commons.byte-streams :as bs]
+            [clojure.data.json :as json]
             [clojure.spec.alpha :as s]
             [clojure.tools.namespace.repl :as tools-repl]
             [juxt.clip.repl :as clip-repl]
@@ -56,4 +57,18 @@
   (do (stop)
       (tools-repl/refresh))
 
+  )
+
+(comment
+  (->> (let [max-col 20]
+         (for [row (range 5)
+               col (range max-col)]
+           {:host "localhost"
+            :port (-> (* max-col row)
+                      (+ col 1234))
+            :row row
+            :column col}))
+       vec
+       json/write-str
+       (spit "resources/collectors-example.json"))
   )
