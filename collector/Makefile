@@ -18,3 +18,18 @@ run-test :
 	done; \
 	wait \
 	)
+
+run-dev-collector:
+	cargo run -- --log-path /tmp/rollup.txt --port 1234
+
+run-10-dev-collectors:
+	(trap 'kill 0' SIGINT; \
+	for row in $(row_range); do \
+		for col in $(col_range); do \
+			i=$$((($$row)*$(cols)+($$col))); \
+			port=$$((1234+$$i)); \
+			target/release/collector --log-path /tmp/rollup.txt --port $$port & \
+		done; \
+	done; \
+	wait \
+	)
