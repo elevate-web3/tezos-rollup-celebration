@@ -1,5 +1,6 @@
 {:paths ["src" "resources"]
- :deps {aleph/aleph {:mvn/version "0.6.0-rc1"}
+ :deps {aleph/aleph {:mvn/version "0.6.0"}
+        manifold/manifold {:mvn/version "0.3.0"}
         hiccup/hiccup {:mvn/version "2.0.0-alpha2"}
         juxt/clip {:mvn/version "0.27.0"}
         metosin/reitit {:mvn/version "0.5.18"}
