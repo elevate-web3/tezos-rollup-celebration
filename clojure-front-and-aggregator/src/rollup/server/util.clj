@@ -2,7 +2,8 @@
   (:require [clojure.spec.alpha :as s]))
 
 (s/def ::stream
-  #(instance? manifold.stream.default.Stream %))
+  any?
+  #_(instance? manifold.stream.default.Stream %))
 
 ;; An atom containing a stream or nil
 (s/def ::stream<?>* #(and (instance? clojure.lang.Atom %)

@@ -17,7 +17,8 @@
                             (assert (.exists file) (str "The conf file " path " does not exist"))
                             (io/as-file path))
                           ;; Default config
-                          (io/resource "collectors-example.json"))
+                          (or (io/resource "config.json")
+                              (io/resource "collectors-example.json")))
                         slurp
                         (s/assert #(not (str/blank? %)))
                         json/read-str
@@ -34,7 +35,7 @@
      {::collectors {:start `(collector/start ~collectors)
                     :stop `collector/stop}
       ::aggregator {:start `(aggregator/start
-                              (merge {::aggregator/flush-ms 50}
+                              (merge {::aggregator/flush-ms 30} ;; A bit more than 30 refreshes / second
                                      (select-keys (clip/ref ::collectors) [::collector/output-stream])))
                     :stop `aggregator/stop}
       ::webserver {:start `(webserver/start-webserver!

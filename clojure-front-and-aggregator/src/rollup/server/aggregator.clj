@@ -4,10 +4,8 @@
             [manifold.stream :as ms]
             [orchestra.core :as _]
             [rollup.server.collector :as collector]
-            [rollup.server.util :as u]
-            [clj-commons.byte-streams :as bs]
-            [clojure.string :as str])
-  (:import org.apache.commons.codec.binary.Hex))
+            [rollup.server.config :as c]
+            [rollup.server.util :as u]))
 
 (s/def ::output-stream ::u/stream)
 (s/def ::flush-ms integer?) ;; ms period for sending data to clients
@@ -22,15 +20,16 @@
   (let [{collector-stream ::collector/output-stream} m
         ;; ---
         tick-stream (ms/periodically (::flush-ms m) (fn [] ::tick))
-        tick-dev-tps (ms/periodically 1000 (fn [] ::tick-tps))
+        tick-tps (ms/periodically 1000 (fn [] ::tick-tps))
         merge-stream (let [stream (ms/stream)]
                        (ms/connect collector-stream stream)
                        (ms/connect tick-stream stream)
-                       (ms/connect tick-dev-tps stream)
+                       (ms/connect tick-tps stream)
                        stream)
-        sending-stream (ms/stream)
+        sending-stream (ms/sliding-stream c/sliding-stream-buffer-size)
         ;; ---
-        output-stream (ms/stream* {:permanent? true})]
+        output-stream (ms/stream* {:permanent? true
+                                   :buffer-size 120000000})]
     ;; Sending loop
     (md/future
       (md/loop []
@@ -63,9 +62,9 @@
                   (ms/put! output-stream (pr-str {:tps tps-count}))
                   (md/recur byte-array-vec 0))
               ;; ---
-              (u/byte-array? val)
-              (md/recur (conj byte-array-vec val)
-                        (inc tps-count))
+              (vector? val)
+              (md/recur (into byte-array-vec val)
+                        (-> (count val) (+ tps-count)))
               ;; stream is closed
               (nil? val) nil
               :else nil ;; TODO: check what can fail

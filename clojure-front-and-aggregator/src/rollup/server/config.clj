@@ -3,3 +3,6 @@
 
 ;; Time in ms
 (s/def ::ticking-time integer?)
+
+(def ^:const sliding-stream-buffer-size
+  10000)
