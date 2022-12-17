@@ -16,13 +16,6 @@
 (defmacro not-empty? [coll]
   `(boolean (seq ~coll)))
 
-;; https://stackoverflow.com/questions/36019032/how-to-iterate-over-all-bits-of-a-byte-in-java
-(defn byte->str [b]
-  (-> (bit-and b 0xFF)
-      Integer/toBinaryString
-      (->> (format "%8s"))
-      (.replace " " "0")))
-
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [m (s/keys :req [::collector/output-stream ::flush-ms])]
   (println "Starting aggregator")

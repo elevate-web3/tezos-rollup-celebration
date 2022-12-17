@@ -26,3 +26,9 @@
         (.put bb ba))
       result)))
 
+;; https://stackoverflow.com/questions/36019032/how-to-iterate-over-all-bits-of-a-byte-in-java
+(defn byte->str [b]
+  (-> (bit-and b 0xFF)
+      Integer/toBinaryString
+      (->> (format "%8s"))
+      (.replace " " "0")))
