@@ -131,8 +131,7 @@ let process img =
 let announce () =
   match mode with
   | `All ->
-    Format.printf "%d %d %d %d %s\n%!"
-      width height nb_rows nb_cols (String.concat " " out_filenames)
+    Format.printf "%s\n%!" (String.concat "" out_filenames)
   | `Single (_row, _col) ->
     Format.printf "%s\n%!" (String.concat "" out_filenames)
 

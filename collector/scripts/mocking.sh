@@ -12,9 +12,18 @@ NB_COLS="$4"
 PORT="$5"
 TPS="$6"
 
+COL_offset=$((COL*100))
+ROW_offset=$((ROW*50))
+
+INDEX=$(($ROW*$NB_COLS+$COL))
+CROPED_FILE=""
 shift 6
+for image in $*; do
+	CROPED_FILE+=" $image.croped$INDEX.ppm"
+done
+
 F=$(mktemp)
-gen "$TPS" "$ROW" "$COL" "$NB_ROWS" "$NB_COLS" $* > "$F" &
+gen "$TPS" "all" "1" "1" $CROPED_FILE > "$F" &
 echo -n 'Waiting for the log file to be created'
 while [ ! -s "$F" ]; do sleep 1; echo -n '.'; done
 echo 'done'
