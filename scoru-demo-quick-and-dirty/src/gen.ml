@@ -84,8 +84,8 @@ let wait_for_tps =
   fun () ->
     let now = Unix.gettimeofday () in
     let delta = max 0. (time_per_transaction -. (now -. !last)) in
-    last := now;
-    Unix.sleepf delta
+    Unix.sleepf delta;
+    last := Unix.gettimeofday ()
 
 let push_pixel x y c =
   let index = output_of x y in
