@@ -123,7 +123,7 @@ fn main() -> anyhow::Result<()> {
                         log_file.seek(pos)?;
                         loop {
                             let read_amount = log_file.read(buf)?;
-                            if read_amount < 40 {
+                            if read_amount < 4 * 40 {
                                 break;
                             }
                             remainder = [rchunck, &buf[..read_amount]].concat();
