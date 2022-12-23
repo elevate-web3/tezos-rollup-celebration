@@ -1,6 +1,6 @@
-rows = 5
-cols = 2
-TPS = 5000
+rows = 4
+cols = 25
+TPS = 1130
 
 row_bound := $(shell echo $$(($(rows) - 1)))
 col_bound := $(shell echo $$(($(cols) - 1)))
@@ -33,3 +33,16 @@ run-10-dev-collectors:
 	done; \
 	wait \
 	)
+run-25-random-collector:
+	(trap 'kill 0' SIGINT; \
+	for row in $(shell seq 0 4); do \
+		for col in $(shell seq 0 4); do \
+			i=$$((($$row)*5+($$col))); \
+			port=$$((1200+$$i)); \
+			cargo run --release -- --log-path /tmp/logfile --port $$port && \
+			echo "collector $i running" & \
+		done; \
+	done; \
+	wait \
+	)
+

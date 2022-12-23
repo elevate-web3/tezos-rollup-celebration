@@ -58,7 +58,7 @@ fn main() -> anyhow::Result<()> {
     let mut should_stop = false;
 
     //Open a TCP listener
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", port))?;
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", port))?;
 
     let (listeners_tx, listeners_rx) = std::sync::mpsc::channel::<Option<TcpStream>>();
     let listeners_tx_clone_for_ctrlc = listeners_tx.clone();
@@ -123,7 +123,7 @@ fn main() -> anyhow::Result<()> {
                         log_file.seek(pos)?;
                         loop {
                             let read_amount = log_file.read(buf)?;
-                            if read_amount == 0 {
+                            if read_amount < 40 {
                                 break;
                             }
                             remainder = [rchunck, &buf[..read_amount]].concat();
