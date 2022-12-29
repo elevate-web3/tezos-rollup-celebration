@@ -71,7 +71,7 @@
               )))))
     {::u/clean-fn (fn clean []
                     (println "Cleaning aggregator")
-                    (doseq [s [merge-stream output-stream tick-stream]]
+                    (doseq [s [merge-stream output-stream tick-stream tick-tps]]
                       (ms/close! s)))
      ::output-stream output-stream}))
 

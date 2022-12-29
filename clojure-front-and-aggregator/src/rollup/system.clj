@@ -1,41 +1,17 @@
 (ns rollup.system
-  (:require [clojure.data.json :as json]
-            [clojure.java.io :as io]
-            [clojure.spec.alpha :as s]
-            [clojure.string :as str]
-            [juxt.clip.core :as clip]
+  (:require [juxt.clip.core :as clip]
             [rollup.server.aggregator :as aggregator]
             [rollup.server.collector :as collector]
+            [rollup.server.config :as c]
             [rollup.server.webserver :as webserver]))
 
-;; Path to a custom JSON file for collectors
-(s/def ::json-config-path string?)
-
-(defn get-system-config [cli-config]
-  (let [collectors (->> (if-let [path (get-in cli-config [:options ::json-config-path])]
-                          (let [file (io/as-file path)]
-                            (assert (.exists file) (str "The conf file " path " does not exist"))
-                            (io/as-file path))
-                          ;; Default config
-                          (or (io/resource "config.json")
-                              (io/resource "collectors-example.json")))
-                        slurp
-                        (s/assert #(not (str/blank? %)))
-                        json/read-str
-                        (s/assert (s/coll-of map? :kind vector?))
-                        (mapv #(do {::collector/host (get % "host")
-                                    ::collector/port (get % "port")
-                                    ::collector/row (get % "row")
-                                    ::collector/column (get % "column")}))
-                        (s/assert (s/coll-of (s/keys :req [::collector/host
-                                                           ::collector/port
-                                                           ::collector/row
-                                                           ::collector/column]))))]
+(defn get-system-config [cli-options]
+  (let [options (c/parse-cli-options cli-options)]
     {:components
-     {::collectors {:start `(collector/start ~collectors)
+     {::collectors {:start `(collector/start {::c/options ~options})
                     :stop `collector/stop}
       ::aggregator {:start `(aggregator/start
-                              (merge {::aggregator/flush-ms 30} ;; A bit more than 30 refreshes / second
+                              (merge {::aggregator/flush-ms 1000} ;; ...
                                      (select-keys (clip/ref ::collectors) [::collector/output-stream])))
                     :stop `aggregator/stop}
       ::webserver {:start `(webserver/start-webserver!

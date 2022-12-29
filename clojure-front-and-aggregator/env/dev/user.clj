@@ -12,13 +12,23 @@
             [rollup.server.util :as u]
             [rollup.system :as sys]
             [shadow.cljs.devtools.api :as shadow]
-            [shadow.cljs.devtools.server :as shadow-server]))
+            [shadow.cljs.devtools.server :as shadow-server]
+            [rollup.server.config :as c]
+            [clojure.tools.cli :as cli]))
 
 (set! *warn-on-reflection* true)
 
 (tools-repl/set-refresh-dirs "env/dev" "src")
 
-(clip-repl/set-init! #(sys/get-system-config {}))
+(s/check-asserts true)
+
+(clip-repl/set-init! #(sys/get-system-config '("--stream-mockup=random"
+                                               "--rows=1"
+                                               "--columns=1"
+                                               "--interval=100"
+                                               "--msg-size=2")))
+
+;; (clip-repl/set-init! #(sys/get-system-config '("--config=resources/collectors-example.json")))
 
 (defn start []
   (clip-repl/start)
@@ -52,6 +62,9 @@
   (start)
   (stop)
 
+  (do (stop)
+      (start))
+
   (refresh-and-restart)
 
   (do (stop)
@@ -60,8 +73,8 @@
   )
 
 (comment
-  (->> (let [max-col 20]
-         (for [row (range 5)
+  (->> (let [max-col 5]
+         (for [row (range 2)
                col (range max-col)]
            {:host "localhost"
             :port (-> (* max-col row)
