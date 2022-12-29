@@ -11,7 +11,7 @@
      {::collectors {:start `(collector/start {::c/options ~options})
                     :stop `collector/stop}
       ::aggregator {:start `(aggregator/start
-                              (merge {::aggregator/flush-ms 1000} ;; ...
+                              (merge {::aggregator/flush-ms 40} ;; ...
                                      (select-keys (clip/ref ::collectors) [::collector/output-stream])))
                     :stop `aggregator/stop}
       ::webserver {:start `(webserver/start-webserver!
