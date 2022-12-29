@@ -31,48 +31,46 @@
         output-stream (ms/stream* {:permanent? true
                                    :buffer-size 120000000})]
     ;; Sending loop
-    (md/future
-      (md/loop []
-        (md/chain
-          (ms/take! sending-stream ::drained)
-          (fn [byte-array-vec]
-            (cond
-              (identical? ::drained byte-array-vec) nil
-              ;; ---
-              (not-empty? byte-array-vec)
-              (md/chain
-                (->> byte-array-vec
-                     ms/->source
-                     (ms/put! output-stream))
-                (fn [_] (md/recur)))
-              ;; ---
-              :else (md/recur))))))
+    (md/loop []
+      (md/chain
+        (ms/take! sending-stream ::drained)
+        (fn [byte-array-vec]
+          (cond
+            (identical? ::drained byte-array-vec) nil
+            ;; ---
+            (not-empty? byte-array-vec)
+            (md/chain
+              (->> byte-array-vec
+                   ms/->source
+                   (ms/put! output-stream))
+              (fn [_] (md/recur)))
+            ;; ---
+            :else (md/recur)))))
     ;; Accumulating loop
-    (md/future
-      (md/loop [byte-array-vec []
-                tps-count 0]
-        (md/chain
-          (ms/take! merge-stream ::drained)
-          (fn [val]
-            (cond
-              (identical? val ::tick)
-              (do (ms/put! sending-stream byte-array-vec)
-                  (md/recur [] tps-count))
-              ;; ---
-              (identical? val ::tick-tps)
-              (do #_(println "TPS: " tps-count)
-                  (ms/put! output-stream (pr-str {:tps tps-count}))
-                  (md/recur byte-array-vec 0))
-              ;; ---
-              (u/byte-array? val)
-              (md/recur (conj byte-array-vec val)
-                        (-> (count val)
-                            (quot 6)
-                            (+ tps-count)))
-              ;; stream is closed
-              (identical? val ::drained) nil
-              :else nil ;; TODO: check what can fail
-              )))))
+    (md/loop [byte-array-vec []
+              tps-count 0]
+      (md/chain
+        (ms/take! merge-stream ::drained)
+        (fn [val]
+          (cond
+            (identical? val ::tick)
+            (do (ms/put! sending-stream byte-array-vec)
+                (md/recur [] tps-count))
+            ;; ---
+            (identical? val ::tick-tps)
+            (do #_(println "TPS: " tps-count)
+                (ms/put! output-stream (pr-str {:tps tps-count}))
+                (md/recur byte-array-vec 0))
+            ;; ---
+            (u/byte-array? val)
+            (md/recur (conj byte-array-vec val)
+                      (-> (count val)
+                          (quot 6)
+                          (+ tps-count)))
+            ;; stream is closed
+            (identical? val ::drained) nil
+            :else nil ;; TODO: check what can fail
+            ))))
     {::u/clean-fn (fn clean []
                     (println "Cleaning aggregator")
                     (doseq [s [merge-stream output-stream tick-stream tick-tps]]
