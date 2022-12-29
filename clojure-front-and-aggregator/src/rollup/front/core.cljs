@@ -20,6 +20,9 @@
 (def anim-frame-ch
   (a/chan))
 
+(def tps-ch
+  (a/chan))
+
 (def ^:const transaction-completion 120000000)
 (def ^:const bytes-per-message 6)
 
@@ -65,12 +68,19 @@
 (_/defn-spec start-update-loop nil?
   []
   (let [show-pixels (make-show-pixels-fn)]
-    (a/go-loop [msg-vec []]
-      (let [[val port] (a/alts! [event-ch anim-frame-ch])]
+    (a/go-loop [msg-vec []
+                tps-count 0]
+      (let [[val port] (a/alts! [event-ch anim-frame-ch tps-ch])]
         (cond
           (identical? port event-ch)
           (do #_(js/console.log (clj->js val))
-              (recur (into msg-vec val)))
+              (recur (into msg-vec val)
+                     (+ tps-count (count val))))
+          ;; ---
+          (identical? port tps-ch)
+          (do (-> (d/getHTMLElement "tps")
+                  (d/setTextContent (str tps-count)))
+              (recur msg-vec 0))
           ;; ---
           (identical? port anim-frame-ch)
           (let [{previous-count ::previous-count} val
@@ -93,7 +103,11 @@
                     (.setAttribute "style" (str "width:" progress-percentage "%;transition:opacity 0s linear;")))))
             (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count new-count
                                                                               ::previous-progress-percentage progress-percentage}))
-            (recur []))))))
+            (recur []
+                   tps-count))))))
+  (js/setInterval
+    (fn [] (a/put! tps-ch true))
+    1000)
   ;; Start the UI refresh loop
   (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count 0
                                                                     ::previous-progress-percentage 0}))
@@ -113,8 +127,8 @@
                      (if (string? data)
                        ;; String
                        (when-let [tps (some-> (edn/read-string data) :tps)]
-                         ;; (js/console.log "String: " tps)
-                         (-> (d/getHTMLElement "tps")
+                         (js/console.log "String: " tps)
+                         #_(-> (d/getHTMLElement "tps")
                              (d/setTextContent (str tps))))
                        ;; Blob
                        (-> (.arrayBuffer data)
