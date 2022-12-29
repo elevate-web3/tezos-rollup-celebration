@@ -1,5 +1,6 @@
 (ns rollup.server.mockup
   (:require [clojure.spec.alpha :as s]
+            [clojure.string :as str]
             [manifold.stream :as ms]
             [orchestra.core :as _]
             [rollup.server.util :as u]))
@@ -9,19 +10,26 @@
 
 (defn make-random-message []
   ;; 010AAAAA 100AAAAA 110AAACC VVVVVVVV
-  (let [b1 (bit-and (rand-int 256) 2r01011111)
-        b2 (bit-and (rand-int 256) 2r10011111)
+  (let [account (rand-int 5000)
+        bit5 2r11111
+        bit3 2r111
+        part3 (bit-and account bit3)
+        part2 (-> (bit-shift-right account 3)
+                  (bit-and bit5))
+        part1 (-> (bit-shift-right account 8)
+                  (bit-and bit5))
+        b1 (bit-or part1 2r01000000)
+        b2 (bit-or part2 2r10000000)
         b3 (let [color (case (rand-int 3)
                          0 2r00
                          1 2r01
-                         2 2r10)
-                 vvv (-> (rand-int 256)
-                         (bit-and 2r00000111))]
-             (-> (bit-shift-left 2r110 3)
-                 (bit-and vvv)
-                 (bit-shift-left 2)
-                 (bit-and color)))
+                         2 2r10)]
+             (-> (bit-shift-left part3 2)
+                 (bit-or color)
+                 (bit-or 2r11000000)))
         b4 (rand-int 256)]
+    ;; (println (->> (map u/byte->str [b1 b2 b3 b4])
+    ;;               (str/join " ")))
     (byte-array [b1 b2 b3 b4])))
 
 (_/defn-spec get-static-mockup-stream any?
