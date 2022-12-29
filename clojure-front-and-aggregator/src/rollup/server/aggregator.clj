@@ -34,15 +34,17 @@
     (md/future
       (md/loop []
         (md/chain
-          (ms/take! sending-stream)
+          (ms/take! sending-stream ::drained)
           (fn [byte-array-vec]
             (cond
-              (nil? byte-array-vec) nil ;; stream closed
+              (identical? ::drained byte-array-vec) nil
               ;; ---
               (not-empty? byte-array-vec)
-              (do (->> (u/concat-byte-arrays byte-array-vec)
-                       (ms/put! output-stream))
-                  (md/recur))
+              (md/chain
+                (->> byte-array-vec
+                     ms/->source
+                     (ms/put! output-stream))
+                (fn [_] (md/recur)))
               ;; ---
               :else (md/recur))))))
     ;; Accumulating loop
@@ -50,7 +52,7 @@
       (md/loop [byte-array-vec []
                 tps-count 0]
         (md/chain
-          (ms/take! merge-stream)
+          (ms/take! merge-stream ::drained)
           (fn [val]
             (cond
               (identical? val ::tick)
@@ -62,11 +64,13 @@
                   (ms/put! output-stream (pr-str {:tps tps-count}))
                   (md/recur byte-array-vec 0))
               ;; ---
-              (vector? val)
-              (md/recur (into byte-array-vec val)
-                        (-> (count val) (+ tps-count)))
+              (u/byte-array? val)
+              (md/recur (conj byte-array-vec val)
+                        (-> (count val)
+                            (quot 6)
+                            (+ tps-count)))
               ;; stream is closed
-              (nil? val) nil
+              (identical? val ::drained) nil
               :else nil ;; TODO: check what can fail
               )))))
     {::u/clean-fn (fn clean []
