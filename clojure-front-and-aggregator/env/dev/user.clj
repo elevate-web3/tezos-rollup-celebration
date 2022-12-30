@@ -1,20 +1,14 @@
 (ns user
-  (:require [aleph.tcp :as tcp]
-            [clj-commons.byte-streams :as bs]
-            [clojure.data.json :as json]
+  (:require [clojure.data.json :as json]
             [clojure.spec.alpha :as s]
             [clojure.tools.namespace.repl :as tools-repl]
+            [flames.core :as flames]
             [juxt.clip.repl :as clip-repl]
-            [manifold.deferred :as md]
-            [manifold.stream :as ms]
             [orchestra.spec.test :as st]
-            [rollup.server.collector :as collector]
-            [rollup.server.util :as u]
             [rollup.system :as sys]
             [shadow.cljs.devtools.api :as shadow]
             [shadow.cljs.devtools.server :as shadow-server]
-            [rollup.server.config :as c]
-            [clojure.tools.cli :as cli]))
+            [rollup.server.util :as u]))
 
 (set! *warn-on-reflection* true)
 
@@ -23,10 +17,10 @@
 (s/check-asserts true)
 
 (clip-repl/set-init! #(sys/get-system-config '("--stream-mockup=random"
-                                               "--rows=1"
-                                               "--columns=1"
-                                               "--interval=100"
-                                               "--msg-size=2")))
+                                               "--rows=2"
+                                               "--columns=5"
+                                               "--interval=40"
+                                               "--msg-size=40")))
 
 ;; (clip-repl/set-init! #(sys/get-system-config '("--config=resources/collectors-example.json")))
 
@@ -60,6 +54,7 @@
 (comment
 
   (start)
+
   (stop)
 
   (do (stop)
@@ -69,6 +64,9 @@
 
   (do (stop)
       (tools-repl/refresh))
+
+  (def flames (flames/start! {:port 54321, :host "localhost"}))
+  (flames/stop! flames)
 
   )
 
