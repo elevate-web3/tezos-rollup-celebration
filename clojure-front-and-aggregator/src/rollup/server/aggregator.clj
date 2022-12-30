@@ -1,6 +1,7 @@
 (ns rollup.server.aggregator
   (:require [clojure.spec.alpha :as s]
             [manifold.deferred :as md]
+            [byte-streams :as bs]
             [manifold.stream :as ms]
             [orchestra.core :as _]
             [rollup.server.collector :as collector]
@@ -20,18 +21,18 @@
   (let [{collector-stream ::collector/output-stream} m
         ;; ---
         tick-stream (ms/periodically (::flush-ms m) (fn [] ::tick))
-        tick-tps (ms/periodically 1000 (fn [] ::tick-tps))
+        ;; tick-tps (ms/periodically 1000 (fn [] ::tick-tps))
         merge-stream (let [stream (ms/stream)]
                        (ms/connect collector-stream stream)
                        (ms/connect tick-stream stream)
-                       (ms/connect tick-tps stream)
+                       ;; (ms/connect tick-tps stream)
                        stream)
-        sending-stream (ms/sliding-stream c/sliding-stream-buffer-size)
+        ;; sending-stream (ms/sliding-stream c/sliding-stream-buffer-size)
         ;; ---
         output-stream (ms/stream* {:permanent? true
                                    :buffer-size 120000000})]
     ;; Sending loop
-    (md/loop []
+    #_(md/loop []
       (md/chain
         (ms/take! sending-stream ::drained)
         (fn [byte-array-vec]
@@ -40,40 +41,33 @@
             ;; ---
             (not-empty? byte-array-vec)
             (md/chain
-              (->> byte-array-vec
-                   ms/->source
-                   (ms/put! output-stream))
+              (md/future
+                (->> byte-array-vec ms/->source))
+              (fn [data] (ms/put! output-stream data))
               (fn [_] (md/recur)))
             ;; ---
             :else (md/recur)))))
     ;; Accumulating loop
-    (md/loop [byte-array-vec []
-              tps-count 0]
+    (md/loop [byte-array-vec []]
       (md/chain
         (ms/take! merge-stream ::drained)
         (fn [val]
           (cond
             (identical? val ::tick)
-            (do (ms/put! sending-stream byte-array-vec)
-                (md/recur [] tps-count))
+            (do (when-not (empty? byte-array-vec)
+                  #_(println byte-array-seq)
+                  (ms/put! output-stream (bs/to-byte-buffers byte-array-vec)))
+                (md/recur []))
             ;; ---
-            (identical? val ::tick-tps)
-            (do #_(println "TPS: " tps-count)
-                (ms/put! output-stream (pr-str {:tps tps-count}))
-                (md/recur byte-array-vec 0))
-            ;; ---
-            (u/byte-array? val)
-            (md/recur (conj byte-array-vec val)
-                      (-> (count val)
-                          (quot 6)
-                          (+ tps-count)))
+            (vector? val)
+            (md/recur (into byte-array-vec val))
             ;; stream is closed
             (identical? val ::drained) nil
-            :else nil ;; TODO: check what can fail
+            :else (md/recur byte-array-vec) ;; TODO: check what can fail
             ))))
     {::u/clean-fn (fn clean []
                     (println "Cleaning aggregator")
-                    (doseq [s [merge-stream output-stream tick-stream tick-tps]]
+                    (doseq [s [merge-stream output-stream tick-stream]]
                       (ms/close! s)))
      ::output-stream output-stream}))
 
@@ -84,6 +78,8 @@
   nil)
 
 (comment
+
+  (bs/possible-conversions (bs/seq-of (class (byte-array [1]))))
 
   (def trame
     [[66 -125 -59 119 64 -97 -50 50 64 -112 -60 43 65 -103 -60 103]

@@ -91,11 +91,9 @@
                                  (partition-all 4)
                                  (filter #(-> (count %) (= 4))) ;; Drop potential remaining bytes
                                  (map (fn [bytes]
-                                        (let [uint-array (u/concat-byte-arrays [(byte-array [row col])
-                                                                                (byte-array bytes)])]
-                                          #_(println (su/bytes->transaction uint-array))
+                                        (let [uint-array (byte-array (concat [row col] bytes))]
+                                          ;; (println (su/bytes->transaction uint-array))
                                           uint-array)))))
-                         u/concat-byte-arrays
                          (ms/put! output-stream))
                     (fn put-success [_] (md/recur))))))))))
     {::output-stream output-stream
@@ -110,8 +108,3 @@
   (when-let [func (::u/clean-fn m)]
     (func))
   nil)
-
-(comment
-  ;; Add before (ms/put! output-stream)
-  ;; u/concat-byte-arrays
-  )
