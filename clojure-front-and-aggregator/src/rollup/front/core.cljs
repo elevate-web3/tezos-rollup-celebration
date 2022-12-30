@@ -124,27 +124,21 @@
      :on-message (fn [e]
                    (let [data (.-data e)]
                      ;; (js/console.log "Data: " data)
-                     (if (string? data)
-                       ;; String
-                       (when-let [tps (some-> (edn/read-string data) :tps)]
-                         (js/console.log "String: " tps)
-                         #_(-> (d/getHTMLElement "tps")
-                             (d/setTextContent (str tps))))
-                       ;; Blob
-                       (-> (.arrayBuffer data)
-                           (.then (fn [array-buffer]
-                                    (let [uint-array (js/Uint8Array. array-buffer)
-                                          ;; _ (js/console.log uint-array)
-                                          quo (quot (.-length uint-array)
-                                                    bytes-per-message)
-                                          messages (for [i (range quo)]
-                                                     (let [begin (* i bytes-per-message)
-                                                           end (-> begin
-                                                                   (+ bytes-per-message))]
-                                                       (-> uint-array
-                                                           (.slice begin end)
-                                                           su/bytes->transaction)))]
-                                      (a/put! event-ch (vec messages)))))))))})
+                     ;; Blob
+                     (-> (.arrayBuffer data)
+                         (.then (fn [array-buffer]
+                                  (let [uint-array (js/Uint8Array. array-buffer)
+                                        ;; _ (js/console.log uint-array)
+                                        quo (quot (.-length uint-array)
+                                                  bytes-per-message)
+                                        messages (for [i (range quo)]
+                                                   (let [begin (* i bytes-per-message)
+                                                         end (-> begin
+                                                                 (+ bytes-per-message))]
+                                                     (-> uint-array
+                                                         (.slice begin end)
+                                                         su/bytes->transaction)))]
+                                    (a/put! event-ch (vec messages))))))))})
   (u/reset-canvas (get-canvas-el!))
   (start-update-loop)
   nil)
