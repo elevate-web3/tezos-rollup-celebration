@@ -9,8 +9,7 @@
 (defn -main
   "Launch production version of the rollup aggregator"
   [& args]
-  (let [cli-config (cli/parse-opts args c/cli-options-config)
-        system-config (sys/get-system-config cli-config)
+  (let [system-config (sys/get-system-config args)
         system (clip/start system-config)]
     (println "Rollup prod aggregator launched")
     (s/check-asserts true)
