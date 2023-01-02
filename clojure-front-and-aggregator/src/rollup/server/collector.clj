@@ -10,7 +10,8 @@
             [rollup.server.config :as c]
             [rollup.server.mockup :as mockup]
             [rollup.server.util :as u]
-            [rollup.shared.util :as su]))
+            [rollup.shared.util :as su])
+  (:import io.netty.buffer.Unpooled))
 
 (s/def ::host string?)
 (s/def ::port integer?)
@@ -82,18 +83,17 @@
             (md/chain
               (ms/take! (::collector-stream cell-stream) ::drained)
               (fn [msg]
+                ;; msg has class [B (byte buffer)
                 (if (identical? msg ::drained)
                   (println "Stream of collector row:" row "col:" col "drained")
                   (md/chain
                     (->> msg
-                         (into []
-                               (comp
-                                 (partition-all 4)
-                                 (filter #(-> (count %) (= 4))) ;; Drop potential remaining bytes
-                                 (map (fn [bytes]
-                                        (let [uint-array (byte-array (concat [row col] bytes))]
-                                          ;; (println (su/bytes->transaction uint-array))
-                                          uint-array)))))
+                         (partition-all 4)
+                         (filter #(-> (count %) (= 4))) ;; Drop potential remaining bytes
+                         (map (fn [bytes] (concat [row col] bytes)))
+                         (apply concat)
+                         byte-array
+                         Unpooled/wrappedBuffer
                          (ms/put! output-stream))
                     (fn put-success [_] (md/recur))))))))))
     {::output-stream output-stream

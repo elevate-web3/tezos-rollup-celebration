@@ -18,6 +18,9 @@
   (defn byte-array? [x]
     (instance? c x)))
 
+(defn netty-buffer? [x]
+  (instance? io.netty.buffer.UnpooledHeapByteBuf x))
+
 (defn concat-byte-arrays [byte-arrays]
   (when (not-empty byte-arrays)
     (let [total-size (reduce + (map count byte-arrays))
