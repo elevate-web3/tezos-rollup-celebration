@@ -1,4 +1,4 @@
-rows = 4
+rows = 2
 cols = 25
 TPS = 1130
 
@@ -22,7 +22,7 @@ run-test :
 run-dev-collector:
 	cargo run -- --log-path /tmp/rollup.txt --port 1234
 
-run-10-dev-collectors:
+run-n-dev-collectors:
 	(trap 'kill 0' SIGINT; \
 	for row in $(row_range); do \
 		for col in $(col_range); do \
@@ -33,6 +33,7 @@ run-10-dev-collectors:
 	done; \
 	wait \
 	)
+
 run-25-random-collector:
 	(trap 'kill 0' SIGINT; \
 	for row in $(shell seq 0 4); do \
@@ -46,3 +47,5 @@ run-25-random-collector:
 	wait \
 	)
 
+build-prod-mockup:
+	cargo build --release

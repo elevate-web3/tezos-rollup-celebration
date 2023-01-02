@@ -15,3 +15,6 @@ build-prod-cljs: clean-cljs
 
 open-browser-page:
 	xdg-open http://localhost:9000
+
+run-500000-tps-mockup:
+	clojure -M:prod -m rollup.core --stream-mockup=random --rows=20 --columns=25 --interval=40 --msg-size=40

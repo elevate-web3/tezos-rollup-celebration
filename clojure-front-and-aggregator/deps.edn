@@ -14,7 +14,8 @@
         ring/ring-defaults {:mvn/version "0.3.4"}
         commons-codec/commons-codec {:mvn/version "1.15"}}
  :aliases {:dev {:extra-paths ["env/dev"]
-                 :extra-deps {org.clojure/tools.namespace {:mvn/version "1.3.0"}}}
+                 :extra-deps {org.clojure/tools.namespace {:mvn/version "1.3.0"}
+                              flames/flames {:mvn/version "0.5.0"}}}
            :cljs {:extra-deps {thheller/shadow-cljs {:mvn/version "2.20.12"}
                                nilenso/wscljs {:mvn/version "0.2.0"}}}
            :cljs-prod {:extra-deps {thheller/shadow-cljs {:mvn/version "2.20.12"}

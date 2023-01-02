@@ -10,7 +10,25 @@ You need:
 All those dependencies can be managed with the [asdf](https://asdf-vm.com/)
 tool.
 
-## Run the architecture locally
+
+## Run the architecture locally with the JVM mockup
+
+### 1. Compile the ClojureScript code
+
+```bash
+cd PROJECT_ROOT/clojure-front-and-aggregator
+make build-prod-cljs
+```
+
+### 2. Run the mockup
+
+```bash
+cd PROJECT_ROOT/clojure-front-and-aggregator
+clojure -M:prod -m rollup.core --stream-mockup=random --rows=20 --columns=25 --interval=40 --msg-size=40
+```
+
+
+## Run the architecture locally with the Rust mockup
 
 ### 1. Compile the ClojureScript code
 
