@@ -14,6 +14,12 @@ struct Args {
     /// Number of times to greet
     #[arg(short, long)]
     port: u16,
+
+    #[arg(short, long)]
+    row: u8,
+
+    #[arg(short, long)]
+    column: u8,
 }
 
 fn encode_color(color_ascii: char) -> u8 {
@@ -26,12 +32,16 @@ fn encode_color(color_ascii: char) -> u8 {
 }
 
 fn encode_transaction(
+    row: u8,
+    column: u8,
     low_bit_address: u8,
     high_bit_address: u8,
     color_ascii: u8,
     value: u8,
-) -> [u8; 4] {
+) -> [u8; 6] {
     [
+        row,
+        column,
         high_bit_address | 0x40,
         low_bit_address >> 3 | 0x80,
         (low_bit_address & 0x07) << 2 | encode_color(color_ascii as char) | 0xC0,
@@ -42,7 +52,12 @@ fn encode_transaction(
 fn main() -> anyhow::Result<()> {
     //Collect command line arguments
 
-    let Args { log_path, port } = Args::parse();
+    let Args {
+        log_path,
+        port,
+        row,
+        column,
+    } = Args::parse();
 
     let mut log_file = match File::open(&log_path) {
         Ok(f) => f,
@@ -130,7 +145,9 @@ fn main() -> anyhow::Result<()> {
                             let iter = remainder.chunks_exact(4);
                             rchunck = iter.remainder();
                             let buf: Vec<u8> = iter
-                                .flat_map(|x| encode_transaction(x[0], x[1], x[2], x[3]))
+                                .flat_map(|x| {
+                                    encode_transaction(row, column, x[0], x[1], x[2], x[3])
+                                })
                                 .collect();
                             match socket.write_all(&buf) {
                                 Ok(_) => {

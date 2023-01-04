@@ -20,7 +20,7 @@ run-test :
 	)
 
 run-dev-collector:
-	cargo run -- --log-path /tmp/rollup.txt --port 1234
+	cargo run -- --log-path /tmp/rollup.txt --port 1234 --row 0 --column 0
 
 run-n-dev-collectors:
 	(trap 'kill 0' SIGINT; \
@@ -28,7 +28,7 @@ run-n-dev-collectors:
 		for col in $(col_range); do \
 			i=$$((($$row)*$(cols)+($$col))); \
 			port=$$((1234+$$i)); \
-			target/release/collector --log-path /tmp/rollup.txt --port $$port & \
+			target/release/collector --log-path /tmp/rollup.txt --port $$port --row $$row --column $$col & \
 		done; \
 	done; \
 	wait \
