@@ -1,5 +1,5 @@
 rows = 2
-cols = 25
+cols = 5
 TPS = 1130
 
 row_bound := $(shell echo $$(($(rows) - 1)))
@@ -22,13 +22,13 @@ run-test :
 run-dev-collector:
 	cargo run -- --log-path /tmp/rollup.txt --port 1234 --row 0 --column 0
 
-run-n-dev-collectors:
+run-n-collectors:
 	(trap 'kill 0' SIGINT; \
 	for row in $(row_range); do \
 		for col in $(col_range); do \
 			i=$$((($$row)*$(cols)+($$col))); \
 			port=$$((1234+$$i)); \
-			target/release/collector --log-path /tmp/rollup.txt --port $$port --row $$row --column $$col & \
+			cargo run --release -- --log-path /tmp/rollup.txt --port $$port --row $$row --column $$col & \
 		done; \
 	done; \
 	wait \

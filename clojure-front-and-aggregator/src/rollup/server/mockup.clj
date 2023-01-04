@@ -3,10 +3,13 @@
             [clojure.string :as str]
             [manifold.stream :as ms]
             [orchestra.core :as _]
-            [rollup.server.util :as u]))
+            [rollup.server.util :as u])
+  (:import io.netty.buffer.Unpooled))
 
 (s/def ::interval integer?)
 (s/def ::msg-size integer?)
+(s/def ::row integer?)
+(s/def ::column integer?)
 
 (defn make-random-message []
   ;; 010AAAAA 100AAAAA 110AAACC VVVVVVVV
@@ -33,19 +36,23 @@
     (byte-array [b1 b2 b3 b4])))
 
 (_/defn-spec get-static-mockup-stream any?
-  [m (s/keys :req [::msg-size ::interval])]
+  [m (s/keys :req [::msg-size ::interval ::row ::column])]
   (let [rand-bytes (u/concat-byte-arrays
                      (for [_i (range (::msg-size m))]
-                       (make-random-message)))]
+                       (u/concat-byte-arrays [(byte-array [(::row m) (::column m)])
+                                              (make-random-message)])))]
     (ms/periodically
       (::interval m)
-      (fn [] (u/concat-byte-arrays [rand-bytes])))))
+      (fn [] (Unpooled/wrappedBuffer
+               (u/concat-byte-arrays [rand-bytes]))))))
 
 (_/defn-spec get-random-mockup-stream any?
-  [m (s/keys :req [::msg-size ::interval])]
+  [m (s/keys :req [::msg-size ::interval ::row ::column])]
   (ms/periodically
     (::interval m)
     (fn []
-      (-> (for [_i (range (::msg-size m))]
-            (make-random-message))
-          u/concat-byte-arrays))))
+      (Unpooled/wrappedBuffer
+        (u/concat-byte-arrays
+          (for [_i (range (::msg-size m))]
+            (u/concat-byte-arrays [(byte-array [(::row m) (::column m)])
+                                   (make-random-message)])))))))

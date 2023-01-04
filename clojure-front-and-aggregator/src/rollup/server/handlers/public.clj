@@ -9,7 +9,7 @@
             [manifold.stream :as ms]
             [orchestra.core :as _]
             [ring.util.response :as resp]
-            [rollup.server.aggregator :as aggregator]
+            [rollup.server.collector :as collector]
             [rollup.server.routing :as rtng]))
 
 (defn layout [body]
@@ -75,15 +75,16 @@
 ;; https://gist.github.com/jeroenvandijk/67d064e0bb08b900e656
 (_/defn-spec data-stream ::rtng/response
   [req ::rtng/request]
-  (let [{source-stream ::aggregator/output-stream
-         websockets* ::rtng/websockets*} req
-        stream (ms/stream)]
-    (-> (md/let-flow [socket (http/websocket-connection req)]
-          (swap! websockets* conj socket)
-          (ms/on-closed stream (fn clean []
-                                 (swap! websockets* disj socket)))
-          (ms/connect source-stream socket)
-          socket)
+  (let [{source-stream ::collector/output-stream
+         websockets* ::rtng/websockets*} req]
+    (-> (md/chain
+          (http/websocket-connection req {:raw-stream? true})
+          (fn [socket]
+            (swap! websockets* conj socket)
+            (ms/on-closed socket (fn clean []
+                                     (swap! websockets* disj socket)))
+            (ms/connect source-stream socket)
+            socket))
         (md/catch (fn [_]
                     {:status 400
                      :headers {"content-type" "application/text"}

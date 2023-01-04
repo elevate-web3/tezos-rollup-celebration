@@ -3,7 +3,7 @@
             [aleph.netty :as netty]
             [clojure.spec.alpha :as s]
             [orchestra.core :as _]
-            [rollup.server.aggregator :as aggregator]
+            [rollup.server.collector :as collector]
             [rollup.server.routes :as r]
             [rollup.server.routing :as rtng]
             [manifold.stream :as ms])
@@ -14,15 +14,21 @@
 (s/def ::port integer?)
 
 (_/defn-spec start-webserver! ::aleph-server
-  [m (s/keys :req [::aggregator/output-stream]
+  [m (s/keys :req [::collector/output-stream]
              :req-un [::port])]
-  (let [websockets* (atom #{})]
+  (let [websockets* (atom #{})
+        collector-stream (::collector/output-stream m)]
     (letfn [(wrap-websockets [handler]
               (fn assoc-websockets [req]
                 (handler
-                  (assoc req ::rtng/websockets* websockets*))))]
-      {::aleph-server (-> (r/make-ring-reitit-router m)
+                  (assoc req ::rtng/websockets* websockets*))))
+            (wrap-collector-stream [handler]
+              (fn assoc-collector-stream [req]
+                (-> (assoc req ::collector/output-stream collector-stream)
+                    handler)))]
+      {::aleph-server (-> (r/make-ring-reitit-router)
                           wrap-websockets
+                          wrap-collector-stream
                           (http/start-server (select-keys m [:port])))
        ::rtng/websockets* websockets*})))
 

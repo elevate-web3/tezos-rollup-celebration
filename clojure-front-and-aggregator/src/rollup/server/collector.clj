@@ -9,33 +9,52 @@
             [orchestra.core :as _]
             [rollup.server.config :as c]
             [rollup.server.mockup :as mockup]
-            [rollup.server.util :as u]
-            [rollup.shared.util :as su])
+            [rollup.server.util :as u])
   (:import io.netty.buffer.Unpooled))
 
 (s/def ::host string?)
 (s/def ::port integer?)
-(s/def ::row integer?)
-(s/def ::column integer?)
 
 (s/def ::output-stream ::u/stream)
 (s/def ::collector-stream ::u/stream)
 
 (s/def ::cell-stream
-  (s/keys :req [::row ::column ::collector-stream]))
+  (s/keys :req [::collector-stream]))
+
+(def ^:const ws-limit
+  ;; (* 64 1024) ;; max
+  (* 60 1024)
+  ;; (* 10 1024)
+  )
+
+(defn aggregate-xf [xf]
+  (let [state (volatile! (Unpooled/compositeBuffer))]
+    (fn
+      ([] (xf))
+      ([result] (xf result))
+      ([result chunk]
+       (let [size (.readableBytes @state)
+             chunk-size (.readableBytes chunk)]
+         (when (> (+ size chunk-size) ws-limit)
+           (xf result @state)
+           (vreset! state (Unpooled/compositeBuffer)))
+         (.addComponent @state true chunk)
+         result)))))
 
 (defn make-mockup-stream [config]
   (let [mockup-fn (case (::c/stream-mockup config)
                     "static" mockup/get-static-mockup-stream
                     "random" mockup/get-random-mockup-stream)
-        vals (for [col (-> config ::c/rows parse-long range)
+        vals (for [row (-> config ::c/rows parse-long range)
                    column (-> config ::c/columns parse-long range)]
                (md/success-deferred
-                 {::row col
+                 {::row row
                   ::column column
                   ::collector-stream (mockup-fn
                                        {::mockup/msg-size (-> config ::c/msg-size parse-long)
-                                        ::mockup/interval (-> config ::c/interval parse-long)})}))]
+                                        ::mockup/interval (-> config ::c/interval parse-long)
+                                        ::mockup/row row
+                                        ::mockup/column column})}))]
     (apply md/zip vals)))
 
 (defn- make-tcp-connections [json-config-path]
@@ -48,22 +67,27 @@
        json/read-str
        (s/assert (s/coll-of map? :kind vector?))
        (mapv #(do {::host (get % "host")
-                   ::port (get % "port")
-                   ::row (get % "row")
-                   ::column (get % "column")}))
-       (s/assert (s/coll-of (s/keys :req [::host ::port ::row ::column])))
+                   ::port (get % "port")}))
+       (s/assert (s/coll-of (s/keys :req [::host ::port])))
        (mapv #(md/chain
                 (tcp/client {:port (::port %)
-                             :host (::host %)})
+                             :host (::host %)
+                             :raw-stream? true})
                 (fn [stream]
-                  (merge (select-keys % [::row ::column])
-                         {::collector-stream stream}))))
+                  (ms/on-closed stream (fn []
+                                         (println (str "Closing TCP source at "
+                                                       (::host %)
+                                                       ":"
+                                                       (::port %)))))
+                  stream)))
        (apply md/zip)))
 
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [options (s/keys :req [::c/options])]
   (let [m (::c/options options)
-        output-stream (ms/sliding-stream c/sliding-stream-buffer-size)
+        collected-stream (ms/sliding-stream c/sliding-stream-buffer-size)
+        output-stream (ms/stream* {:permanent? true
+                                   :buffer-size 120000000})
         cell-streams (deref
                        (cond
                          (::c/stream-mockup m)
@@ -76,32 +100,18 @@
         stream-count (count cell-streams)]
     (println "Starting collectors for" stream-count "connections")
     (doseq [cell-stream cell-streams]
-      (let [{row ::row
-             col ::column} cell-stream]
-        (md/future
-          (md/loop []
-            (md/chain
-              (ms/take! (::collector-stream cell-stream) ::drained)
-              (fn [msg]
-                ;; msg has class [B (byte buffer)
-                (if (identical? msg ::drained)
-                  (println "Stream of collector row:" row "col:" col "drained")
-                  (md/chain
-                    (->> msg
-                         (partition-all 4)
-                         (filter #(-> (count %) (= 4))) ;; Drop potential remaining bytes
-                         (map (fn [bytes] (concat [row col] bytes)))
-                         (apply concat)
-                         byte-array
-                         Unpooled/wrappedBuffer
-                         (ms/put! output-stream))
-                    (fn put-success [_] (md/recur))))))))))
+      (ms/connect cell-stream collected-stream))
+    (->> collected-stream
+         (ms/transform aggregate-xf)
+         (ms/consume (fn [data]
+                       (ms/put! output-stream data))))
     {::output-stream output-stream
      ::u/clean-fn (fn clean! []
                     (println "Cleaning" stream-count "collectors")
                     (ms/close! output-stream)
+                    (ms/close! collected-stream)
                     (doseq [cell-stream cell-streams]
-                      (ms/close! (::collector-stream cell-stream))))}))
+                      (ms/close! cell-stream)))}))
 
 (_/defn-spec stop nil?
   [m (s/keys :req [::u/clean-fn])]

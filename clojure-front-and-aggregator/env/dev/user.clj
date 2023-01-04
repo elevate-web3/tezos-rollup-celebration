@@ -16,13 +16,13 @@
 
 (s/check-asserts true)
 
-(clip-repl/set-init! #(sys/get-system-config '("--stream-mockup=random"
-                                               "--rows=2"
-                                               "--columns=5"
+#_(clip-repl/set-init! #(sys/get-system-config '("--stream-mockup=random"
+                                               "--rows=1"
+                                               "--columns=1"
                                                "--interval=40"
                                                "--msg-size=40")))
 
-;; (clip-repl/set-init! #(sys/get-system-config '("--config=resources/collectors-example.json")))
+(clip-repl/set-init! #(sys/get-system-config '("--config=resources/collectors-example.json")))
 
 (defn start []
   (clip-repl/start)
@@ -76,9 +76,7 @@
                col (range max-col)]
            {:host "localhost"
             :port (-> (* max-col row)
-                      (+ col 1234))
-            :row row
-            :column col}))
+                      (+ col 1234))}))
        vec
        json/write-str
        (spit "resources/collectors-example.json"))

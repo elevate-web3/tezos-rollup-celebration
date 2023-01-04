@@ -1,12 +1,12 @@
 (ns rollup.server.routing
   (:require [clojure.spec.alpha :as s]
             [reitit.core :as reitit]
-            [rollup.server.aggregator :as aggregator])
+            [rollup.server.collector :as collector])
   (:import clojure.lang.Atom))
 
 (s/def ::websockets* #(and (instance? Atom %)
                            (-> % deref set?)))
-(s/def ::request (s/keys :req [::aggregator/output-stream
+(s/def ::request (s/keys :req [::collector/output-stream
                                ::reitit/match
                                ::reitit/router
                                ::websockets*]))

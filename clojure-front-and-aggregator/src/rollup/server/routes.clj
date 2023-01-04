@@ -1,12 +1,9 @@
 (ns rollup.server.routes
-  (:require [clojure.spec.alpha :as s]
-            [manifold.deferred :as md]
+  (:require [manifold.deferred :as md]
             [orchestra.core :as _]
             [reitit.ring :as rr]
             [ring.middleware.defaults :as rd]
-            [rollup.server.aggregator :as aggregator]
-            [rollup.server.handlers.public :as public-h]
-            [rollup.server.util :as u]))
+            [rollup.server.handlers.public :as public-h]))
 
 (defn- wrap-ring-middleware
   "Wraps an async capable ring middleware and exposes an Aleph-compliant one.
@@ -25,13 +22,6 @@
         (let [response (md/deferred)]
           (handler' request #(md/success! response %) #(md/error! response %))
           response)))))
-
-(_/defn-spec wrap-aggregator-stream fn?
-  [handler fn?
-   output-stream ::u/stream]
-  (fn assoc-aggregator-stream [req]
-    (-> (assoc req ::aggregator/output-stream output-stream)
-        handler)))
 
 ;; To be able to recompile handlers on the fly on dev
 ;; h for handler
@@ -83,7 +73,7 @@
                      :get (h public-h/data-stream)}]]])
 
 (_/defn-spec make-ring-reitit-router fn?
-  [m (s/keys :req [::aggregator/output-stream])]
+  []
   (-> (make-routes {})
       rr/router
       ;; https://github.com/metosin/reitit/blob/master/doc/ring/slash_handler.md
@@ -95,5 +85,4 @@
             {:not-found (fn not-found [_req]
                           {:status  404
                            :headers {"Content-Type" "text/html"}
-                           :body "<h1>404 not found</h1>"})})))
-      (wrap-aggregator-stream (::aggregator/output-stream m))))
+                           :body "<h1>404 not found</h1>"})})))))

@@ -1,4 +1,1 @@
-[{"host":"localhost",
-  "port":1234,
-  "row": 2,
-  "column": 1}]
+[{"host":"localhost","port":1234},{"host":"localhost","port":1235},{"host":"localhost","port":1236},{"host":"localhost","port":1237},{"host":"localhost","port":1238},{"host":"localhost","port":1239},{"host":"localhost","port":1240},{"host":"localhost","port":1241},{"host":"localhost","port":1242},{"host":"localhost","port":1243}]
