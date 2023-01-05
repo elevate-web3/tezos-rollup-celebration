@@ -20,7 +20,7 @@ run-test :
 	)
 
 run-dev-collector:
-	cargo run -- --log-path /tmp/rollup.txt --port 1234 --row 0 --column 0
+	scripts/mocking_random.sh 0 0 1234
 
 run-n-collectors:
 	(trap 'kill 0' SIGINT; \
@@ -28,7 +28,7 @@ run-n-collectors:
 		for col in $(col_range); do \
 			i=$$((($$row)*$(cols)+($$col))); \
 			port=$$((1234+$$i)); \
-			cargo run --release -- --log-path /tmp/rollup.txt --port $$port --row $$row --column $$col & \
+			scripts/mocking_random.sh $$row $$col $$port & \
 		done; \
 	done; \
 	wait \
@@ -40,7 +40,7 @@ run-25-random-collector:
 		for col in $(shell seq 0 4); do \
 			i=$$((($$row)*5+($$col))); \
 			port=$$((1200+$$i)); \
-			cargo run --release -- --log-path /tmp/logfile --port $$port && \
+			scripts/mocking_random.sh $$row $$col $$port && \
 			echo "collector $i running" & \
 		done; \
 	done; \

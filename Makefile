@@ -36,6 +36,35 @@ run-collector-docker :
 	wait \
 	)
 
+build-random-collector-docker :
+	docker build -t collector:latest -f Dockerfile.collector_random .
+
+publish-random-collector-docker :
+	docker tag collector:latest pewulfman/tezos-rollup-celebration:collector; \
+	docker push pewulfman/tezos-rollup-celebration:collector
+
+run-one-random-collector-docker :
+	docker run \
+		--name collector \
+		--net=host \
+		collector:latest \
+		0 0 1200
+
+run-random-collector-docker :
+	(trap 'kill 0' SIGINT; \
+	for row in $(row_range); do \
+		for col in $(col_range); do \
+			i=$$((($$row)*$(cols)+($$col))); \
+			port=$$((1200+$$i)); \
+			docker run \
+			--name collector$$i \
+			--net=host collector:latest \
+			$$row $$col $$port & \
+		done; \
+	done; \
+	wait \
+	)
+
 build-aggregator-docker :
 	docker build -t aggregator:latest -f Dockerfile.aggregator .
 
