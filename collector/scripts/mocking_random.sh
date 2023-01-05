@@ -10,7 +10,7 @@ COL="$2"
 PORT="$3"
 
 F=$(mktemp)
-mockup_log $F
+mockup_log $F &
 echo -n 'Waiting for the log file to be created'
 while [ ! -s "$F" ]; do sleep 1; echo -n '.'; done
 echo 'done'
