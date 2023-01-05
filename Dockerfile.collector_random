@@ -1,0 +1,25 @@
+FROM archlinux:base-devel
+
+# Setup pacman and update system
+RUN pacman-key --init && pacman -Syu --noconfirm
+
+# Install cargo
+RUN pacman -Sy --noconfirm rustup \
+	&& rustup toolchain install stable
+
+# Copy collector files
+COPY ./collector .
+
+# build and install collector
+RUN cargo build --release && mv target/release/collector /usr/local/bin/collector
+
+# Copy mockup files
+COPY ./mockup_log ./mockup_log
+
+#build and install mockup
+RUN cd mockup_log && cargo build --release && mv target/release/mockup_log /usr/local/bin/mockup_log
+
+RUN chmod a+rx scripts/*.sh
+
+# Run server
+ENTRYPOINT ["scripts/mocking_random.sh"]
