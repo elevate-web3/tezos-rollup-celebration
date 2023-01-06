@@ -7,6 +7,9 @@ use std::net::{TcpListener, TcpStream};
 /// Simple program to greet a person
 #[derive(Parser)]
 struct Args {
+    #[arg(short = 's', long)]
+    start_log_path: std::path::PathBuf,
+
     /// Name of the person to greet
     #[arg(short = 'f', long)]
     log_path: std::path::PathBuf,
@@ -27,7 +30,7 @@ fn encode_color(color_ascii: char) -> u8 {
         'R' => 0x00,
         'G' => 0x01,
         'B' => 0x02,
-        _ => 0xFF, // should be tratated as an error
+        _ => 0x00, // default to red
     }
 }
 
@@ -53,6 +56,7 @@ fn main() -> anyhow::Result<()> {
     //Collect command line arguments
 
     let Args {
+        start_log_path,
         log_path,
         port,
         row,
@@ -68,7 +72,7 @@ fn main() -> anyhow::Result<()> {
             )
             .exit(),
     };
-    let mut pointer = 0;
+    let mut pointer = 1;
 
     let mut should_stop = false;
 
@@ -121,6 +125,8 @@ fn main() -> anyhow::Result<()> {
                     // Add a path to be watched. All files and directories at that path and
                     // below will be monitored for changes.
                     watcher.watch(&log_path, RecursiveMode::NonRecursive)?;
+
+                    std::fs::File::create(&start_log_path)?;
 
                     // Wait for interrupt signal
                     'notify: loop {

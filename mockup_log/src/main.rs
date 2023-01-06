@@ -20,11 +20,12 @@ const INTERVAL_MICROS: u64 = 999;
 async fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     // Create a temporary file.
-    /*
-    let temp_directory = env::temp_dir();
-    let temp_file = temp_directory.join("debug_log");
-    */
+
+    //let temp_directory = env::temp_dir();
+    //let log_file = temp_directory.join("debug_log");
+
     let log_file = &args[1];
+    let start_log_file = &args[2];
 
     let mut stdout = io::stdout();
 
@@ -33,6 +34,14 @@ async fn main() -> Result<()> {
         .await?;
 
     let mut file = File::create(log_file).await?;
+    file.write(&[0]).await?;
+
+    while File::open(start_log_file).await.is_err() {
+        time::sleep(Duration::from_millis(1000)).await;
+    }
+
+    // Wait for FE to be initialised
+    time::sleep(Duration::from_millis(60_000)).await;
 
     let mut rng = rand::thread_rng();
     let account_numbers = Uniform::from(0..5000);

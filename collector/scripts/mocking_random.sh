@@ -10,9 +10,11 @@ COL="$2"
 PORT="$3"
 
 F=$(mktemp)
-mockup_log $F &
+S=$(mktemp)
+rm $S
+mockup_log $F $S &
 echo -n 'Waiting for the log file to be created'
 while [ ! -s "$F" ]; do sleep 1; echo -n '.'; done
 echo 'done'
 echo 'Running collector.'
-collector --log-path "$F" --port "$PORT" --row "$ROW" --column "$COL"
+collector --log-path "$F" -s "$S" --port "$PORT" --row "$ROW" --column "$COL"
