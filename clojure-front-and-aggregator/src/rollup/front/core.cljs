@@ -39,7 +39,7 @@
     (fn show-pixels [msg-vec]
       (let [image-data (.getImageData context 0 0 width height)
             data (.-data image-data)]
-        (doseq [[row col account color value #_:as #_msg] msg-vec]
+        (doseq [[row col account color value] msg-vec]
           ;; (js/console.log msg)
           (let [x-cell (rem account node-width)
                 y-cell (quot account node-width)
@@ -128,7 +128,7 @@
                      (-> (.arrayBuffer data)
                          (.then (fn [array-buffer]
                                   (let [uint-array (js/Uint8Array. array-buffer)
-                                        ;; _ (js/console.log uint-array)
+                                        _ (js/console.log (.-length uint-array))
                                         quo (quot (.-length uint-array)
                                                   bytes-per-message)
                                         messages (for [i (range quo)]

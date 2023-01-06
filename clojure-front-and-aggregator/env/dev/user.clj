@@ -76,7 +76,7 @@
                col (range max-col)]
            {:host "localhost"
             :port (-> (* max-col row)
-                      (+ col 1234))}))
+                      (+ col 1200))}))
        vec
        json/write-str
        (spit "resources/collectors-example.json"))

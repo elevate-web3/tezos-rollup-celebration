@@ -83,6 +83,8 @@
             (swap! websockets* conj socket)
             (ms/on-closed socket (fn clean []
                                      (swap! websockets* disj socket)))
+            #_(-> source-stream
+                (ms/consume #(ms/put! socket %)))
             (ms/connect source-stream socket)
             socket))
         (md/catch (fn [_]

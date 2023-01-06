@@ -10,7 +10,8 @@
             [rollup.server.config :as c]
             [rollup.server.mockup :as mockup]
             [rollup.server.util :as u])
-  (:import io.netty.buffer.Unpooled))
+  (:import io.netty.buffer.Unpooled
+           io.netty.buffer.ByteBuf))
 
 (s/def ::host string?)
 (s/def ::port integer?)
@@ -82,6 +83,34 @@
                   stream)))
        (apply md/zip)))
 
+(def ok*
+  (atom 0))
+
+(def error*
+  (atom 0))
+
+(def buf-size*
+  (atom {}))
+
+(comment
+  @ok*
+  @error*
+  (->> @buf-size*
+       (map (fn [[bytes n]]
+              {:bytes bytes
+               :n n
+               :quot (quot bytes 6)
+               :mod (mod bytes 6)}))
+       (sort-by :bytes)
+       vec)
+
+  (* 40 6)
+  (mod 252 6)
+
+  (clojure.reflect/reflect foobar)
+
+  )
+
 (_/defn-spec start (s/keys :req [::output-stream ::u/clean-fn])
   [options (s/keys :req [::c/options])]
   (let [m (::c/options options)
@@ -102,7 +131,13 @@
     (doseq [cell-stream cell-streams]
       (ms/connect cell-stream collected-stream))
     (->> collected-stream
-         (ms/transform aggregate-xf)
+         (ms/map (fn [data]
+                   #_(swap! buf-size* #(let [len (.capacity %)]
+                                       (if-let [n (get % len)]
+                                         (assoc % len (inc n))
+                                         (assoc % len 1))))
+                   data))
+         ;; (ms/transform aggregate-xf)
          (ms/consume (fn [data]
                        (ms/put! output-stream data))))
     {::output-stream output-stream

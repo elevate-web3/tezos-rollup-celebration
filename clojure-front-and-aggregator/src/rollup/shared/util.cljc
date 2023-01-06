@@ -17,10 +17,12 @@
               (+ A2)
               (* 2r1000)
               (+ A3))
-        C (case (bit-and b3 2r11)
-            2r00 :R
-            2r01 :G
-            2r10 :B)
+        C (let [color (bit-and b3 2r11)]
+            (case color
+              2r00 :R
+              2r01 :G
+              2r10 :B
+              :R))
         V (bit-and b4 0xff)]
     #?(:cljs (do #js [row col A C V])
        :clj [row col A C V])))
