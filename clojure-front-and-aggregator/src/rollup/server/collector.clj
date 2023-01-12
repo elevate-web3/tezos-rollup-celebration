@@ -93,21 +93,13 @@
   (atom {}))
 
 (comment
+
   @ok*
   @error*
+
   (->> @buf-size*
-       (map (fn [[bytes n]]
-              {:bytes bytes
-               :n n
-               :quot (quot bytes 6)
-               :mod (mod bytes 6)}))
-       (sort-by :bytes)
+       (sort-by :len)
        vec)
-
-  (* 40 6)
-  (mod 252 6)
-
-  (clojure.reflect/reflect foobar)
 
   )
 
@@ -131,12 +123,18 @@
     (doseq [cell-stream cell-streams]
       (ms/connect cell-stream collected-stream))
     (->> collected-stream
-         (ms/map (fn [data]
-                   #_(swap! buf-size* #(let [len (.capacity %)]
-                                       (if-let [n (get % len)]
-                                         (assoc % len (inc n))
-                                         (assoc % len 1))))
-                   data))
+         (ms/transform
+           (map (fn [data]
+
+                  (swap! buf-size* #(let [len (.readableBytes data)
+                                          info {:len len
+                                                :capacity (.capacity data)
+                                                :quot (quot len 6)
+                                                :mod (mod len 6)}]
+                                      (if-let [n (get % info)]
+                                        (assoc % info (inc n))
+                                        (assoc % info 1))))
+                  data)))
          ;; (ms/transform aggregate-xf)
          (ms/consume (fn [data]
                        (ms/put! output-stream data))))

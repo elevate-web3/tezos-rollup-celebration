@@ -1,6 +1,6 @@
 rows = 2
 cols = 5
-TPS = 1130
+TPS = 2 # 1130
 
 row_bound := $(shell echo $$(($(rows) - 1)))
 col_bound := $(shell echo $$(($(cols) - 1)))
@@ -20,7 +20,10 @@ run-test :
 	)
 
 run-dev-collector:
-	scripts/mocking_random.sh 0 0 1234
+	(trap 'kill 0' SIGINT; \
+	scripts/mocking_random.sh 0 0 1234 & \
+	wait \
+	)
 
 run-n-collectors:
 	(trap 'kill 0' SIGINT; \

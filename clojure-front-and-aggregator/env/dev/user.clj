@@ -71,12 +71,12 @@
   )
 
 (comment
-  (->> (let [max-col 5]
-         (for [row (range 2)
+  (->> (let [max-col 1]
+         (for [row (range 1)
                col (range max-col)]
            {:host "localhost"
             :port (-> (* max-col row)
-                      (+ col 1200))}))
+                      (+ col 1234))}))
        vec
        json/write-str
        (spit "resources/collectors-example.json"))
