@@ -2,7 +2,8 @@ use clap::{CommandFactory, Parser};
 use notify::{RecursiveMode, Result, Watcher};
 use std::fs::File;
 use std::io::{Read, Seek, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpStream;
+use websocket::sync::Server;
 
 /// Simple program to greet a person
 #[derive(Parser)]
@@ -72,14 +73,14 @@ fn main() -> anyhow::Result<()> {
 
     let mut should_stop = false;
 
-    //Open a TCP listener
-    let listener = TcpListener::bind(format!("0.0.0.0:{}", port))?;
+    //Open a websocket listener
+    let mut listener = Server::bind(format!("0.0.0.0:{}", port))?;
 
     let (listeners_tx, listeners_rx) = std::sync::mpsc::channel::<Option<TcpStream>>();
     let listeners_tx_clone_for_ctrlc = listeners_tx.clone();
     std::thread::spawn(move || loop {
         match listener.accept() {
-            Ok((socket, _)) => listeners_tx.send(Some(socket)).unwrap(),
+            Ok(socket) => listeners_tx.send(Some(socket.stream)).unwrap(),
             Err(e) => {
                 println!("couldn't get client: {:?}", e);
             }
