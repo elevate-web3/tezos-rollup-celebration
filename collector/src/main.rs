@@ -1,5 +1,6 @@
 use clap::{CommandFactory, Parser};
 use notify::{RecursiveMode, Result, Watcher};
+use std::cmp;
 use std::fs::File;
 use std::io::{Read, Seek, Write};
 use std::net::TcpStream;
@@ -21,6 +22,12 @@ struct Args {
 
     #[arg(short, long)]
     column: u8,
+
+    #[arg(short, long, default_value = "40")]
+    min_buffer_size: usize,
+
+    #[arg(short, long, default_value = "1024")]
+    max_buffer_size: usize,
 }
 
 fn encode_color(color_ascii: char) -> u8 {
@@ -58,6 +65,8 @@ fn main() -> anyhow::Result<()> {
         port,
         row,
         column,
+        min_buffer_size,
+        max_buffer_size,
     } = Args::parse();
 
     let mut log_file = match File::open(&log_path) {
@@ -139,9 +148,10 @@ fn main() -> anyhow::Result<()> {
                         log_file.seek(pos)?;
                         loop {
                             let read_amount = log_file.read(buf)?;
-                            if read_amount < 4 * 40 {
+                            if read_amount < 4 * min_buffer_size {
                                 break;
                             }
+                            let read_amount = cmp::min(read_amount, 4 * max_buffer_size);
                             remainder = [rchunck, &buf[..read_amount]].concat();
                             let iter = remainder.chunks_exact(4);
                             rchunck = iter.remainder();
