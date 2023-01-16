@@ -20,7 +20,9 @@ run-test :
 	)
 
 run-dev-collector:
-	scripts/mocking_random.sh 0 0 1234
+	(trap 'kill 0' SIGINT; \
+	scripts/mocking_random.sh 0 0 1234 & \
+	wait )
 
 run-n-collectors:
 	(trap 'kill 0' SIGINT; \
