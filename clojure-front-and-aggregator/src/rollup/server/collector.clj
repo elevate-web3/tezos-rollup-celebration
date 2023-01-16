@@ -1,5 +1,5 @@
 (ns rollup.server.collector
-  (:require [aleph.tcp :as tcp]
+  (:require [aleph.http :as http]
             [clojure.data.json :as json]
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
@@ -70,12 +70,11 @@
                    ::port (get % "port")}))
        (s/assert (s/coll-of (s/keys :req [::host ::port])))
        (mapv #(md/chain
-                (tcp/client {:port (::port %)
-                             :host (::host %)
-                             :raw-stream? true})
+                (http/websocket-client (str "ws://" (::host %) ":" (::port %))
+                                       {:raw-stream? true})
                 (fn [stream]
                   (ms/on-closed stream (fn []
-                                         (println (str "Closing TCP source at "
+                                         (println (str "Closing websocket at "
                                                        (::host %)
                                                        ":"
                                                        (::port %)))))
