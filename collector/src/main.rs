@@ -2,10 +2,12 @@ use clap::{CommandFactory, Parser};
 use notify::{RecursiveMode, Result, Watcher};
 use std::cmp;
 use std::fs::File;
-use std::io::{Read, Seek, Write};
+use std::io::{Read, Seek};
 use std::net::TcpStream;
-use websocket::sync::Server;
-
+use websocket::sender::Sender;
+use websocket::sync::{Client, Server};
+use websocket::ws::Sender as SenderTrait;
+use websocket::Message;
 /// Simple program to greet a person
 #[derive(Parser)]
 struct Args {
@@ -23,10 +25,10 @@ struct Args {
     #[arg(short, long)]
     column: u8,
 
-    #[arg(short, long, default_value = "40")]
+    #[arg(short = 'm', long, default_value = "40")]
     min_buffer_size: usize,
 
-    #[arg(short, long, default_value = "1024")]
+    #[arg(short = 'M', long, default_value = "1024")]
     max_buffer_size: usize,
 }
 
@@ -85,11 +87,19 @@ fn main() -> anyhow::Result<()> {
     //Open a websocket listener
     let mut listener = Server::bind(format!("0.0.0.0:{}", port))?;
 
-    let (listeners_tx, listeners_rx) = std::sync::mpsc::channel::<Option<TcpStream>>();
+    let (listeners_tx, listeners_rx) = std::sync::mpsc::channel::<Option<Client<TcpStream>>>();
     let listeners_tx_clone_for_ctrlc = listeners_tx.clone();
     std::thread::spawn(move || loop {
         match listener.accept() {
-            Ok(socket) => listeners_tx.send(Some(socket.stream)).unwrap(),
+            Ok(socket) => match socket.accept() {
+                Ok(client) => {
+                    println!("New client connected");
+                    listeners_tx.send(Some(client)).unwrap();
+                }
+                Err(e) => {
+                    println!("couldn't get client: {:?}", e);
+                }
+            },
             Err(e) => {
                 println!("couldn't get client: {:?}", e);
             }
@@ -124,7 +134,7 @@ fn main() -> anyhow::Result<()> {
             break;
         }
         match listeners_rx.recv() {
-            Ok(Some(mut socket)) => {
+            Ok(Some(mut client)) => {
                 //let hello = socket.write_all("Hello!\n".as_bytes());
                 // Automatically select the best implementation for your platform.
                 {
@@ -160,7 +170,11 @@ fn main() -> anyhow::Result<()> {
                                     encode_transaction(row, column, x[0], x[1], x[2], x[3])
                                 })
                                 .collect();
-                            match socket.write_all(&buf) {
+                            let message = Message::binary(buf);
+                            let mut sender = Sender::new(false);
+                            let mut writer = Vec::new();
+                            sender.send_message(&mut writer, &message).unwrap();
+                            match client.writer_mut().write_all(&writer) {
                                 Ok(_) => {
                                     pointer += read_amount;
                                 }
