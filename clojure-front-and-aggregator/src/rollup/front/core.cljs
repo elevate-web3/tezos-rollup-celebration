@@ -3,6 +3,7 @@
             [clojure.edn :as edn]
             [clojure.spec.alpha :as s]
             [goog.dom :as d]
+            [goog.style :as style]
             [orchestra.core :as _ :include-macros true]
             [rollup.front.util :as u]
             [rollup.shared.util :as su]
@@ -78,8 +79,8 @@
                      (+ tps-count (count val))))
           ;; ---
           (identical? port tps-ch)
-          (do (-> (d/getHTMLElement "tps")
-                  (d/setTextContent (str tps-count)))
+          (do (some-> (d/getHTMLElement "tps")
+                      (d/setTextContent (str tps-count)))
               (recur msg-vec 0))
           ;; ---
           (identical? port anim-frame-ch)
@@ -96,11 +97,11 @@
               ;; Update view
               #_(js/console.log (count msg-vec))
               (show-pixels msg-vec)
-              (-> (d/getHTMLElement "transaction-count")
-                  (d/setTextContent (str new-count)))
+              (some-> (d/getHTMLElement "transaction-count")
+                      (d/setTextContent (str new-count)))
               (when-not (identical? progress-percentage (::previous-progress-percentage val))
-                (-> (js/document.getElementById "progress-bar")
-                    (.setAttribute "style" (str "width:" progress-percentage "%;transition:opacity 0s linear;")))))
+                (some-> (js/document.getElementById "progress-bar")
+                        (style/setStyle "width" (str progress-percentage "%")))))
             (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count new-count
                                                                               ::previous-progress-percentage progress-percentage}))
             (recur []
@@ -117,8 +118,8 @@
   (ws/create
     (str "ws://" js/window.location.host "/data-stream")
     {:on-open (fn [_e]
-                (-> (js/document.getElementById "loading-spinner") .-classList (.add "d-none"))
-                (-> (js/document.getElementById "info-text") .-classList (.remove "d-none")))
+                (some-> (js/document.getElementById "loading-spinner") .-classList (.add "d-none"))
+                (some-> (js/document.getElementById "info-text") .-classList (.remove "d-none")))
      ;; :on-close (fn [e] (js/console.log "WS Close: " e))
      ;; :on-error (fn [e] (js/console.log "WS Error: " e))
      :on-message (fn [e]
