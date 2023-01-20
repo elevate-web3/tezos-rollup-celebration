@@ -13,8 +13,8 @@ use tokio::io::{self, AsyncWriteExt};
 use tokio::time::{self, Instant};
 
 /// Adjust me to change TPS.
-const INTERVAL_MICROS: u64 = 999;
-// const INTERVAL_MICROS: u64 = 2_000_000;
+const INTERVAL_MICROS: u64 = 200;
+// const INTERVAL_MICROS: u64 = 25_000;
 
 #[tokio::main]
 async fn main() -> Result<()> {
