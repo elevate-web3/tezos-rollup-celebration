@@ -87,9 +87,9 @@
           (let [{previous-count ::previous-count} val
                 new-count (+ previous-count (count msg-vec))
                 progress-percentage (let [percentage (-> (/ new-count transaction-completion)
-                                                         (* 1000)
+                                                         (* 100000)
                                                          js/Math.floor
-                                                         (/ 10))]
+                                                         (/ 100))]
                                       (if (> percentage 100)
                                         100
                                         percentage))]
@@ -98,7 +98,10 @@
               #_(js/console.log (count msg-vec))
               (show-pixels msg-vec)
               (some-> (d/getHTMLElement "transaction-count")
-                      (d/setTextContent (str new-count)))
+                      (d/setTextContent (-> new-count
+                                            (/ 10000)
+                                            (js/Math.round)
+                                            (/ 100))))
               (when-not (identical? progress-percentage (::previous-progress-percentage val))
                 (some-> (js/document.getElementById "progress-bar")
                         (style/setStyle "width" (str progress-percentage "%")))))

@@ -62,12 +62,13 @@
        [:body {:style {:background site-background
                        :color "white"
                        :font-family "Poppins"}}
-        [:nav.navbar.navbar-dark.navbar-expand {:style {:background-color tezos-grey-dark}}
+        [:nav.navbar.navbar-dark.navbar-expand.position-fixed.w-100 {:style {:background-color tezos-grey-dark
+                                                                             :z-index 1000}}
          [:div.container-fluid
           [:a.navbar-brand {:href "#"}
            [:img {:style {:height "50px"}
                   :src "/images/TezosLogo_Horizontal_White.svg"}]]
-          [:ul.navbar-nav
+          [:ul.navbar-nav.position
            (->> [{:text "DATA"
                   :link "#rollup-demo-data"}
                  {:text "VISUALIZATION"
@@ -82,6 +83,7 @@
                                       :style {:color "white"
                                               :font-size "1.25rem"}}
                          text]])))]]]
+        [:div {:style {:height "76px"}}]
         ;; Data section
         [:div#rollup-demo-data.container-fluid.text-center
          [:div.row.row-cols-1.row-cols-sm-2
@@ -107,7 +109,7 @@
                                                :aria-valuemin "0",
                                                :aria-valuemax "100"}]]]
             [:p.mt-4
-             [:span.h3 "100000"]
+             [:span#tps.h3 "0"]
              [:br]
              "Transactions per second"]]]]]
         ;; Visualization section
@@ -137,11 +139,17 @@
           [:div.col
            [:div.card {:style {:color "black"}}
             [:div.card-body
+             [:div.text-center.mb-2
+              [:img {:style {:width "300px"}
+                     :src "https://i0.wp.com/infrachain.com/wp-content/uploads/2022/02/Nomadic-Labs-Logo-768x156-2.png?w=768&ssl=1"}]]
              [:h3 "Nomadic Labs"]
              [:p "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]
              ]]]
           [:div.col
            [:div.card {:style {:color "black"}}
+            [:div.text-center
+             [:img {:style {:width "100px"}
+                    :src "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALgAAAC4CAMAAABn7db1AAAAV1BMVEX///8AAAABAQGAgIBAQED8/Pw/Pz/5+fn39/cGBgYJCQk8PDw5OTnz8/NDQ0N8fHyEhIQQEBDt7e2Xl5e3t7eKiop1dXVubm5JSUmhoaFPT08bGxusrKwxmMZ5AAADaElEQVR4nO2c63LaMBBGJcHq4ivQJqGX93/O7grazqRIHmsbMZP5zpBfjqzDshZYK8sYAAAAAAAAAAAAAAAAAAD8QzBfDutBXn35yj0bQ9RuflkGm1KynXkJZIJC25jZO+usuHflNcqnbdrVKXjrkht6R/xgsnVQhPyYA+46cyLiTFHkSqQxDYmzpTOrXJcUFQE3E0t3vzZzqqjEA3m2foY4BaMbV3hUkSzvLm40YwrEIQ5xiEMc4hCHOMQh/knEJz7N0N18JeW9cjQ+PeGW053irIw4TY4Dfu4dcUkVmRNq956ns+0/kWVf2TloZlWC8YPcLHdPFTOTynzmi/OcXPeL8zX3HhVZPl/zTFZv8ZcLZ2m7taRKnpTRjagNEPd777v1BEbs94vzOEwt7f62V03Wcqrceqe95KDR/nZ3wqyb1per08SGmTBudsmfdis8oqhCHu8ljf0Bj3nmrzXiF5NPohgP6W1c/HXZi5/euNs4725459st7O3ewSx2aBgNkx1zt63D4ZqtleLJDrtLKc4t0m1sFT/wx9VuLcRRvu53d+yszxdYq/gq14fmt0rzjYQ75l/UreLPuwOCOMQhDnGIQxziEIc4xCEOcYhDHOIQ/1/io30ongZZ5Vye4doQd1IRq8RjlUl9zWyviUuSEtD74lKuaNUm5jbF+W8oF8VWCtr142/TNB2vx3csk/+eagviN1NF2v54f9o//DSaIqd4mxgMPZyAnH1tEndDPC/YPR+KMb1kbdVs7eP2kd/KWFsQv31xDsmt5WTIK5k1MZfCwINSjhRoptpgsxXxJI1P5YpFLgGpkvxxuVBO6lNqjziPSsmVUyX87qYVKSE9WvPPiU9LJeCbEeeAD7YszqmiKTZWoPz0RDlZNnNcvgYOH2EGcYhDHOIQhzjEIQ5xiEMc4hCHOMQhDnGIQxziEIc4xCEOcYhDHOIQhzjEIQ7xzyge8gYmRa2Un6ANVPkHfp36e8tj8152jClg7TFv4Fo8npJLz4h4MDS/+tEXFw5e1/xYfemwH6dpuX5TPpfcIk6xvhKT5rwRQvHwbXuJZxACUXkDlPuBohq/pzl80HKxKjPddoYoLhukGOVtlY6He+vu4rnb2gPo2aySTCHSc7TDRoqyVu24vCXlPiQAAAAAAAAAAAAAoIFfRuxUUNXoC2EAAAAASUVORK5CYII="}]]
             [:div.card-body
              [:h3 "TriliTech"]
              [:p "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]
@@ -149,6 +157,9 @@
           [:div.col
            [:div.card {:style {:color "black"}}
             [:div.card-body
+[:div.text-center
+             [:img {:style {:width "125px"}
+                    :src "/images/logo-elevate_v01.png"}]]
              [:h3 "Elevate"]
              [:p "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]
              ]]]]]
