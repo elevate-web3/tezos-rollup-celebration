@@ -32,33 +32,6 @@ struct Args {
     max_buffer_size: usize,
 }
 
-fn encode_color(color_ascii: char) -> u8 {
-    match color_ascii {
-        'R' => 0x00,
-        'G' => 0x01,
-        'B' => 0x02,
-        _ => 0xFF, // should be tratated as an error
-    }
-}
-
-fn encode_transaction(
-    row: u8,
-    column: u8,
-    low_bit_address: u8,
-    high_bit_address: u8,
-    color_ascii: u8,
-    value: u8,
-) -> [u8; 6] {
-    [
-        row,
-        column,
-        high_bit_address | 0x40,
-        low_bit_address >> 3 | 0x80,
-        (low_bit_address & 0x07) << 2 | encode_color(color_ascii as char) | 0xC0,
-        value,
-    ]
-}
-
 fn main() -> anyhow::Result<()> {
     //Collect command line arguments
 
@@ -166,9 +139,7 @@ fn main() -> anyhow::Result<()> {
                             let iter = remainder.chunks_exact(4);
                             rchunck = iter.remainder();
                             let buf: Vec<u8> = iter
-                                .flat_map(|x| {
-                                    encode_transaction(row, column, x[0], x[1], x[2], x[3])
-                                })
+                                .flat_map(|x| [row, column, x[0], x[1], x[2], x[3]])
                                 .collect();
                             let message = Message::binary(buf);
                             let mut sender = Sender::new(false);
