@@ -9,12 +9,6 @@ with A representing an account on the roll-up,
 C representing the color ('R','G','B' in ascii),
 V representing the value of the pixel channel
 
-The collector transform the data in order to add a synchronisation
-code in case of issues :
-
-010AAAAA 100AAAAA 110AAACC VVVVVVVV
-   High-bit Middle-bit low-bit
-Changing the representation of color to (0x00 : R, 0x01 : G, 0x10 : B, 0xff : error)
 ## Run the collector
 cargo run -- -f <logfile> -p <port>
 
