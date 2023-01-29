@@ -3,12 +3,14 @@
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
+            [clojure.string :as str]
             [hiccup.util :as hu]
             [hiccup2.core :as h]
             [manifold.deferred :as md]
             [manifold.stream :as ms]
             [orchestra.core :as _]
             [ring.util.response :as resp]
+            [rollup.shared.util :as su]
             [rollup.server.collector :as collector]
             [rollup.server.routing :as rtng]))
 
@@ -26,6 +28,9 @@
 
 (def ^:const tezos-grey-dark
   "#030405")
+
+(def ^:const tezos-light-dark
+  "#263042")
 
 (defn layout [body]
   (-> (h/html
@@ -58,7 +63,8 @@
          {:href "https://fonts.googleapis.com/css2?family=Poppins&display=swap",
           :rel "stylesheet"}]
         [:title "Tezos Rollup celebration"]
-        [:style "--bs-progress-bar-transition: opacity 0s linear;"]]
+        [:style "--bs-progress-bar-transition: opacity 0s linear;"]
+        [:style (str ".form-check-input:checked{background-color:" tezos-light-dark ";border-color:" tezos-light-dark ";}")]]
        [:body {:style {:background site-background
                        :color "white"
                        :font-family "Poppins"}}
@@ -87,10 +93,17 @@
         ;; Data section
         [:div#rollup-demo-data.container-fluid.text-center
          [:div.row.row-cols-1.row-cols-sm-2
-          [:div.col.py-5
+          [:div.col.py-4
            [:h1
             "Race to 120 millions transactions"]
-           [:p "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]]
+           [:p "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]
+
+           [:div.form-check.form-switch.d-flex.justify-content-center
+            [:input#toggle-canvas-size.form-check-input.me-3 {:type "checkbox" :role "switch"}]
+            [:label.form-check-label {:for "toggle-canvas-size"}
+             "Fit screen / Real canvas size"]]
+
+           ]
           [:div.col.py-4.d-flex.justify-content-center.align-items-center
            [:div.flex-fill
             [:p
@@ -111,11 +124,12 @@
             [:p.mt-4
              [:span#tps.h3 "0"]
              [:br]
-             "Transactions per second"]]]]]
+             "Mean transactions per second since beginning"]]]]]
         ;; Visualization section
-        [:canvas#my-canvas.d-block.w-100 {:width "2500"
-                                          :height "2000"
-                                          :style {:border "1px solid black"}}]
+        [:canvas#my-canvas.d-block.m-auto {:width "2500"
+                                           :height "2000"
+                                           :style {:border "1px solid black"
+                                                   :height su/canvas-height-prop}}]
         ;; Explanation section
         [:div#rollup-demo-explanation.container-fluid.mt-5
          [:h1 "An explanation on what you see"]
