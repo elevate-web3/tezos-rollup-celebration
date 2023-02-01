@@ -22,4 +22,4 @@
        :clj [row col A C V])))
 
 (def ^:const canvas-height-prop
-  "calc(100vh - 325px)")
+  "calc(100vh - 252px)")

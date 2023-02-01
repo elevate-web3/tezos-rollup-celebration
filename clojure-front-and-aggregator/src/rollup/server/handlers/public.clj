@@ -96,7 +96,7 @@
           [:div.col.py-4
            [:h1
             "Race to 120 millions transactions"]
-           [:p "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]
+           [:p "Lorem ipsum dolor sit amet"]
 
            [:div.form-check.form-switch.d-flex.justify-content-center
             [:input#toggle-canvas-size.form-check-input.me-3 {:type "checkbox" :role "switch"}]
@@ -106,11 +106,16 @@
            ]
           [:div.col.py-4.d-flex.justify-content-center.align-items-center
            [:div.flex-fill
-            [:p
-             [:span#transaction-count.h3 "0"]
-             [:span.h3 "M"]
-             [:br]
-             "transactions out of a total of 12M"]
+            [:div
+             [:p.d-inline-block.me-3
+              [:span#tps.h3 "0"]
+              [:br]
+              "Mean transactions per second since beginning"]
+             [:p.d-inline-block
+              [:span#transaction-count.h3 "0"]
+              [:span.h3 "M"]
+              [:br]
+              "transactions out of a total of 120M"]]
             [:div.d-inline-block.w-50
              [:div.progress {:style {:background-color tezos-grey-light}}
               [:div#progress-bar.progress-bar {:style {:width "5%"
@@ -121,10 +126,7 @@
                                                :aria-valuenow "0",
                                                :aria-valuemin "0",
                                                :aria-valuemax "100"}]]]
-            [:p.mt-4
-             [:span#tps.h3 "0"]
-             [:br]
-             "Mean transactions per second since beginning"]]]]]
+            ]]]]
         ;; Visualization section
         [:canvas#my-canvas.d-block.m-auto {:width "2500"
                                            :height "2000"
