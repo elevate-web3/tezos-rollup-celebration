@@ -108,7 +108,7 @@
                 progress-percentage (let [percentage (-> (/ new-count transaction-completion)
                                                          (* 100000)
                                                          js/Math.floor
-                                                         (/ 100))]
+                                                         (/ 1000))]
                                       (if (> percentage 100)
                                         100
                                         percentage))]

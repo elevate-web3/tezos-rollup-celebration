@@ -115,7 +115,7 @@
               [:span#transaction-count.h3 "0"]
               [:span.h3 "M"]
               [:br]
-              "transactions out of a total of 120M"]]
+              "Transactions out of a total of 120M"]]
             [:div.d-inline-block.w-50
              [:div.progress {:style {:background-color tezos-grey-light}}
               [:div#progress-bar.progress-bar {:style {:width "5%"
