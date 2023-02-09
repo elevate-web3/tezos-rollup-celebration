@@ -20,6 +20,3 @@
         V (bit-and b4 0xff)]
     #?(:cljs #js [row col A C V]
        :clj [row col A C V])))
-
-(def ^:const canvas-height-prop
-  "calc(100vh - 252px)")

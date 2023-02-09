@@ -1,17 +1,19 @@
 (ns rollup.front.core
   (:require [clojure.core.async :as a :include-macros true]
-            [clojure.edn :as edn]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [goog.dom :as d]
             [goog.style :as style]
             [orchestra.core :as _ :include-macros true]
             [rollup.front.util :as u]
+            [rollup.shared.config :as sc]
             [rollup.shared.util :as su]
             [wscljs.client :as ws]))
 
 (s/def ::previous-count integer?)
 (s/def ::previous-progress-percentage integer?)
+
+(s/def ::gauge any?) ;; The gauge JS instance object
 
 (defn get-canvas-el! []
   (js/document.getElementById "my-canvas"))
@@ -40,6 +42,32 @@
        (map #(apply str %))
        (str/join ",")
        str/reverse))
+
+;; Check https://bernii.github.io/gauge.js/ for details
+(defn create-gauge []
+  (let [options {:angle 0.15, ;; The span of the gauge arc
+                 :lineWidth 0.44, ;; The line thickness
+                 :radiusScale 1, ;; Relative radius
+                 :pointer {:length 0.6, ;; Relative to gauge radius
+                           :strokeWidth 0.035, ;; The thickness
+                           :color "#000000" ;; Fill color
+                           },
+                 :limitMax false,     ;; If false, max value increases automatically if value > maxValue
+                 :limitMin false,     ;; If true, the min value of the gauge will be fixed
+                 :colorStart "#6FADCF",   ;; Colors
+                 :colorStop "#8FC0DA",    ;; just experiment with them
+                 :strokeColor "#E0E0E0",  ;; to see which ones work best for you
+                 :generateGradient true,
+                 :highDpiSupport true,     ;; High resolution support
+                 }
+        target (js/document.getElementById "gauge-canvas")
+        gauge (-> (js/Gauge. target)
+                  (.setOptions options))]
+    (set! (-> gauge .-maxValue) sc/gauge-max-value)
+    (-> gauge (.setMinValue sc/gauge-min-value))
+    (set! (-> gauge .-animationSpeed) 32)
+    (-> gauge (.set sc/gauge-min-value))
+    gauge))
 
 (defn make-show-pixels-fn []
   (let [el (get-canvas-el!)
@@ -76,32 +104,39 @@
     (a/put! anim-frame-ch m)))
 
 (_/defn-spec start-update-loop nil?
-  []
-  (let [show-pixels (make-show-pixels-fn)]
+  [m (s/keys :req [::gauge])]
+  (let [{gauge ::gauge} m
+        show-pixels (make-show-pixels-fn)
+        init-time (js/Date.now)]
     (a/go-loop [msg-vec []
-                tps-count 0
-                tps-seconds 0]
+                tps-count 0]
       (let [[val port] (a/alts! [event-ch anim-frame-ch tps-ch])]
         (cond
+          ;; Accumulate message
           (identical? port event-ch)
-          (do #_(js/console.log (clj->js val))
-              (recur (into msg-vec val)
-                     (+ tps-count (count val))
-                     tps-seconds))
-          ;; ---
+          (recur (into msg-vec val)
+                 (+ tps-count (count val)))
+          ;; Update TPS
           (identical? port tps-ch)
           (if (> tps-count 0)
-            ;; Start mean TPS
-            (let [new-tps-seconds (inc tps-seconds)]
-              (some-> (d/getHTMLElement "tps")
-                      (d/setTextContent (-> (/ tps-count new-tps-seconds)
-                                            js/Math.round
-                                            str
-                                            interleave-commas)))
-              (recur msg-vec tps-count new-tps-seconds))
+            ;; Update mean TPS
+            (let [now (js/Date.now)
+                  mean-tps (-> (- now init-time)
+                               (/ 1000)
+                               (->> (/ tps-count)))]
+              (-> (d/getHTMLElement "tps")
+                  (d/setTextContent (-> mean-tps
+                                        js/Math.round
+                                        str
+                                        interleave-commas)))
+              (.set gauge (let [tps (js/Math.round mean-tps)]
+                            (if (> tps sc/gauge-max-value)
+                              sc/gauge-max-value
+                              tps)))
+              (recur msg-vec tps-count))
             ;; Wait for incoming messages
-            (recur msg-vec tps-count tps-seconds))
-          ;; ---
+            (recur msg-vec tps-count))
+          ;; Rerender the image and update the progress bar
           (identical? port anim-frame-ch)
           (let [{previous-count ::previous-count} val
                 new-count (+ previous-count (count msg-vec))
@@ -114,66 +149,51 @@
                                         percentage))]
             (when-not (identical? new-count previous-count)
               ;; Update view
-              #_(js/console.log (count msg-vec))
               (show-pixels msg-vec)
-              (some-> (d/getHTMLElement "transaction-count")
-                      (d/setTextContent (-> new-count
-                                            (/ 10000)
-                                            (js/Math.round)
-                                            (/ 100))))
+              (-> (d/getHTMLElement "transaction-count")
+                  (d/setTextContent (-> new-count
+                                        (/ 100000)
+                                        (js/Math.round)
+                                        (/ 10))))
               (when-not (identical? progress-percentage (::previous-progress-percentage val))
-                (some-> (js/document.getElementById "progress-bar")
-                        (style/setStyle "width" (str progress-percentage "%")))))
+                (-> (js/document.getElementById "progress-bar")
+                    (style/setStyle "height" (str progress-percentage "%")))))
             (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count new-count
                                                                               ::previous-progress-percentage progress-percentage}))
-            (recur [] tps-count tps-seconds))))))
+            (recur [] tps-count))))))
   (js/setInterval
     (fn [] (a/put! tps-ch true))
-    1000)
+    sc/gauge-refresh-interval-ms)
   ;; Start the UI refresh loop
   (js/window.requestAnimationFrame (create-animation-frame-handler {::previous-count 0
                                                                     ::previous-progress-percentage 0}))
   nil)
 
-(defn activate-canvas-switch! []
-  (-> (js/document.getElementById "toggle-canvas-size")
-      (.addEventListener "change" (fn [e]
-                                    (let [el (js/document.getElementById "my-canvas")]
-                                      (if e.target.checked
-                                        (do (-> el .-classList (.remove "d-block"))
-                                            (-> el .-classList (.remove "m-auto"))
-                                            (-> el .-style .-height (set! "")))
-                                        (do (-> el .-classList (.add "d-block"))
-                                            (-> el .-classList (.add "m-auto"))
-                                            (-> el .-style .-height (set! su/canvas-height-prop)))))))))
-
 (defn start-system! []
-  (ws/create
-    (str "ws://" js/window.location.host "/data-stream")
-    {:on-open (fn [_e]
-                (some-> (js/document.getElementById "loading-spinner") .-classList (.add "d-none"))
-                (some-> (js/document.getElementById "info-text") .-classList (.remove "d-none"))
-                (start-update-loop))
-     ;; :on-close (fn [e] (js/console.log "WS Close: " e))
-     ;; :on-error (fn [e] (js/console.log "WS Error: " e))
-     :on-message (fn [e]
-                   (let [data (.-data e)]
-                     ;; (js/console.log "Data: " data)
-                     ;; Blob
-                     (-> (.arrayBuffer data)
-                         (.then (fn [array-buffer]
-                                  (let [uint-array (js/Uint8Array. array-buffer)
-                                        ;; _ (js/console.log uint-array)
-                                        quo (quot (.-length uint-array)
-                                                  bytes-per-message)
-                                        messages (for [i (range quo)]
-                                                   (let [begin (* i bytes-per-message)
-                                                         end (-> begin
-                                                                 (+ bytes-per-message))]
-                                                     (-> uint-array
-                                                         (.slice begin end)
-                                                         su/bytes->transaction)))]
-                                    (a/put! event-ch (vec messages))))))))})
-  (activate-canvas-switch!)
+  (let [gauge (create-gauge)]
+    (ws/create
+      (str "ws://" js/window.location.host "/data-stream")
+      {:on-open (fn [_e]
+                  (start-update-loop {::gauge gauge}))
+       ;; :on-close (fn [e] (js/console.log "WS Close: " e))
+       ;; :on-error (fn [e] (js/console.log "WS Error: " e))
+       :on-message (fn [e]
+                     (let [data (.-data e)]
+                       ;; (js/console.log "Data: " data)
+                       ;; Blob
+                       (-> (.arrayBuffer data)
+                           (.then (fn [array-buffer]
+                                    (let [uint-array (js/Uint8Array. array-buffer)
+                                          ;; _ (js/console.log uint-array)
+                                          quo (quot (.-length uint-array)
+                                                    bytes-per-message)
+                                          messages (for [i (range quo)]
+                                                     (let [begin (* i bytes-per-message)
+                                                           end (-> begin
+                                                                   (+ bytes-per-message))]
+                                                       (-> uint-array
+                                                           (.slice begin end)
+                                                           su/bytes->transaction)))]
+                                      (a/put! event-ch (vec messages))))))))}))
   (u/reset-canvas (get-canvas-el!))
   nil)

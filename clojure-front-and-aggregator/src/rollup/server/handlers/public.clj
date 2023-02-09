@@ -3,16 +3,17 @@
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
-            [clojure.string :as str]
             [hiccup.util :as hu]
             [hiccup2.core :as h]
             [manifold.deferred :as md]
             [manifold.stream :as ms]
             [orchestra.core :as _]
             [ring.util.response :as resp]
-            [rollup.shared.util :as su]
             [rollup.server.collector :as collector]
-            [rollup.server.routing :as rtng]))
+            [rollup.server.config :as c]
+            [rollup.server.routing :as rtng]
+            [rollup.shared.config :as sc]
+            [rollup.shared.util :as su]))
 
 (def ^:const tezos-blue
   "#0F61FF")
@@ -70,70 +71,54 @@
                        :font-family "Poppins"}}
         [:nav.navbar.navbar-dark.navbar-expand.position-fixed.w-100 {:style {:background-color tezos-grey-dark
                                                                              :z-index 1000}}
-         [:div.container-fluid
-          [:a.navbar-brand {:href "#"}
-           [:img {:style {:height "50px"}
-                  :src "/images/TezosLogo_Horizontal_White.svg"}]]
-          [:ul.navbar-nav.position
-           (->> [{:text "DATA"
-                  :link "#rollup-demo-data"}
-                 {:text "VISUALIZATION"
-                  :link "#my-canvas"}
-                 {:text "EXPLAINATION"
-                  :link "#rollup-demo-explanation"}
-                 {:text "TEAMS"
-                  :link "#rollup-demo-teams"}]
-                (map (fn [{:keys [text link]}]
-                       [:li.nav-item.fw-bold.pe-3
-                        [:a.nav-link {:href link
-                                      :style {:color "white"
-                                              :font-size "1.25rem"}}
-                         text]])))]]]
+         [:div.row.w-100
+          [:div.col-3
+           [:a.navbar-brand {:href sc/tezos-logo-url}
+            [:img {:style {:height "50px"}
+                   :src "/images/TezosLogo_Horizontal_White.svg"}]]]
+          [:div.col-6.d-flex.justify-content-center.align-items-center
+           [:h2.mb-0 "Race to 120 million transactions"]]
+          [:div.col-3.d-flex.justify-content-end.align-items-center
+           [:ul.navbar-nav.position
+            [:li.nav-item.fw-bold.pe-3
+             [:a.nav-link {:href sc/blog-post-url
+                           :style {:color "white"
+                                   :font-size "1.25rem"}}
+              sc/blog-post-text]]]]]]
         [:div {:style {:height "76px"}}]
         ;; Data section
-        [:div#rollup-demo-data.container-fluid.text-center
-         [:div.row.row-cols-1.row-cols-sm-2
-          [:div.col.py-4
-           [:h1
-            "Race to 120 millions transactions"]
-           [:p "Lorem ipsum dolor sit amet"]
-
-           [:div.form-check.form-switch.d-flex.justify-content-center
-            [:input#toggle-canvas-size.form-check-input.me-3 {:type "checkbox" :role "switch"}]
-            [:label.form-check-label {:for "toggle-canvas-size"}
-             "Fit screen / Real canvas size"]]
-
-           ]
-          [:div.col.py-4.d-flex.justify-content-center.align-items-center
-           [:div.flex-fill
-            [:div
-             [:p.d-inline-block.me-3
-              [:span#tps.h3 "0"]
-              [:br]
-              "Mean transactions per second since beginning"]
-             [:p.d-inline-block
-              [:span#transaction-count.h3 "0"]
-              [:span.h3 "M"]
-              [:br]
-              "Transactions out of a total of 120M"]]
-            [:div.d-inline-block.w-50
-             [:div.progress {:style {:background-color tezos-grey-light}}
-              [:div#progress-bar.progress-bar {:style {:width "5%"
+        [:div.container-fluid.text-center
+         [:div.row
+          [:div.col-2.py-4.d-flex
+           [:div.flex-fill.d-flex.flex-column.justify-content-center.align-items-center
+            [:p
+             [:span#transaction-count.h4 "0"]
+             [:span.h4 "M"]
+             [:span.h4 "/120M"]]
+            [:div.flex-fill.d-flex.flex-column.justify-content-center #_{:style {:height "calc(100vh - 10px)"}}
+             [:div.progress {:style {:background-color tezos-grey-light
+                                     :transform "rotate(180deg)"
+                                     :width "15px"
+                                     :height "calc(100vh - 190px)"}}
+              [:div#progress-bar.progress-bar {:style {:width "100%"
                                                        :transition "opacity 0s linear"
                                                        :background-color tezos-grey-stealth}
                                                :role "progressbar",
                                                :aria-label "Basic example",
                                                :aria-valuenow "0",
                                                :aria-valuemin "0",
-                                               :aria-valuemax "100"}]]]
-            ]]]]
-        ;; Visualization section
-        [:canvas#my-canvas.d-block.m-auto {:width "2500"
-                                           :height "2000"
-                                           :style {:border "1px solid black"
-                                                   :height su/canvas-height-prop}}]
+                                               :aria-valuemax "100"}]]]]]
+          [:div.col-8.pt-2
+           [:canvas#my-canvas.d-block.m-auto {:width "2500"
+                                              :height "2000"
+                                              :style {:border "1px solid black"
+                                                      :height sc/canvas-height-prop}}]]
+          [:div.col-2.d-flex.flex-column.justify-content-center.align-items-center
+           [:div#tps.h3 0]
+           [:canvas#gauge-canvas]
+           [:p "Mean TPS"]]]]
         ;; Explanation section
-        [:div#rollup-demo-explanation.container-fluid.mt-5
+        [:div.container-fluid.mt-5
          [:h1 "An explanation on what you see"]
          [:div.row.row-cols-1.row-cols-sm-2.gy-3.mt-3
           [:div.col
@@ -149,7 +134,7 @@
              [:p "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]
              ]]]]]
         ;; Teams section
-        [:div#rollup-demo-teams.container-fluid.mt-5
+        [:div.container-fluid.mt-5
          [:h1 "Teams"]
          [:div.row.row-cols-1.row-cols-sm-3.gy-3.mt-3
           [:div.col
@@ -181,6 +166,7 @@
              ]]]]]
         ;; Footer space
         [:div {:style {:height "50px"}}]
+        [:script {:src "/js/gauge.js"}]
         [:script {:src (str "/cljs/" main-js-name)}]]])))
 
 ;; https://gist.github.com/jeroenvandijk/67d064e0bb08b900e656
