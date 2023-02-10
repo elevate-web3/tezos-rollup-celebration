@@ -162,8 +162,12 @@
              [:img {:style {:width "125px"}
                     :src "/images/logo-elevate_v01.png"}]]
              [:h3 "Elevate"]
-             [:p "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]
-             ]]]]]
+             [:p "Elevate Web 3 is a software development studio and consulting boutique. The studio focuses on blockchain and smart contract projects. Our full-stack approach go from web app to mobile app and to backend via all the web3 coding aspects, be they for nft, defi or other web2 to web3 transformations. We select the right technologies to address the business needs on time, within budget and with the right quality and performance."]
+             [:p "For this project, we’ve implemented a transaction collector in Rust that collects data from 1000 rollup nodes. Those 1000 collectors then send the data to a single aggregator written in Clojure. The aggregator also acts as a web server that serves a webpage written in ClojureScript."]
+             [:p
+              "For more information, please refer to "
+              [:a {:href "http://elevate-web3.com"}
+               "elevate-web3.com"]]]]]]]
         ;; Footer space
         [:div {:style {:height "50px"}}]
         [:script {:src "/js/gauge.js"}]
